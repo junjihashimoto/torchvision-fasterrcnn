@@ -1,0 +1,3 @@
+[submodule "Yolo-to-COCO-format-converter"]
+	path = Yolo-to-COCO-format-converter
+	url = https://github.com/junjihashimoto/Yolo-to-COCO-format-converter.git

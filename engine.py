@@ -128,12 +128,12 @@ def inference(model, data_loader, device):
         outputs = model(images)
 
         for (output,image,target) in zip(outputs,images,targets):
-            print("---")
-            print(output)
-            print(image.shape)
-            print(image.dtype)
-            print(image[0,0,0])
-            print(target["file_name"])
+            #print("---")
+            #print(output)
+            #print(image.shape)
+            #print(image.dtype)
+            #print(image[0,0,0])
+            #print(target["file_name"])
             img = Image.open('few-bdd100k/images/valids/' + target["file_name"]).convert('RGB')
             #print(image.shape)
             #img = F.to_tensor(img)
