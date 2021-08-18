@@ -21,7 +21,7 @@
             [ pkgs.poetry2nix.defaultPoetryOverrides customOverrides ];
         };
 
-        packageName = throw "put your package name here";
+        packageName = "torchvision-fasterrcnn";
       in {
         packages.${packageName} = app;
 
