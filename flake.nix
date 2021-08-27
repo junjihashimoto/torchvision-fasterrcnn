@@ -22,8 +22,15 @@
         };
 
         packageName = "torchvision-fasterrcnn";
+        fasterrcnn = import ./default.nix {
+          inherit pkgs;
+          poetry2nix = pkgs.poetry2nix;
+        };
       in {
-        packages.${packageName} = app;
+        packages = {
+          ${packageName} = app;
+          train = fasterrcnn.train;
+        };
 
         defaultPackage = self.packages.${system}.${packageName};
 
