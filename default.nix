@@ -3,15 +3,21 @@
 }:
 with pkgs;
 let
+  customOverrides = self: super: {
+    # Overrides go here
+    opencv-python = super.opencv-python.overridePythonAttrs (old: {
+      nativeBuildInputs = [ pkgs.cmake ] ++ old.nativeBuildInputs;
+      buildInputs = [ self.scikit-build ] ++ (old.buildInputs or []);
+      dontUseCmakeConfigure = true;
+    });
+  };
+
   mkDerivation = { pname, description, script, scriptArgs } : poetry2nix.mkPoetryApplication {
     inherit pname;
     version = "2021-06-27";
     projectDir = ./.;
-    overrides = poetry2nix.overrides.withDefaults
-      (self: super:
-        {
-        }
-      );
+      
+    overrides = [ pkgs.poetry2nix.defaultPoetryOverrides customOverrides ];
     nativeBuildInputs = [
       curl
     ];
