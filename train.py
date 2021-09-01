@@ -35,6 +35,8 @@ from engine import train_one_epoch, evaluate
 import presets
 import utils
 
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 
 def get_dataset(name, image_set, transform, data_path):
     paths = {
@@ -60,7 +62,7 @@ def get_args_parser(add_help=True):
     parser.add_argument('--dataset', default='bdd100k', help='dataset')
     parser.add_argument('--model', default='fasterrcnn_resnet50_fpn', help='model')
     parser.add_argument('--device', default='cuda', help='device')
-    parser.add_argument('-b', '--batch-size', default=4, type=int,
+    parser.add_argument('-b', '--batch-size', default=12, type=int,
                         help='images per gpu, the total batch size is $NGPU x batch_size')
     parser.add_argument('--epochs', default=26, type=int, metavar='N',
                         help='number of total epochs to run')
