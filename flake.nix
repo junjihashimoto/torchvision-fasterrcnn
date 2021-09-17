@@ -39,7 +39,6 @@
       in {
         packages = {
           train = fasterrcnn.train;
-          train2 = fasterrcnn.train2;
         };
 
         # defaultPackage = self.packages.${system}.${packageName};

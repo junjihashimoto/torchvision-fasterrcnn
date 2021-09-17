@@ -12,7 +12,18 @@ let
       numpy
     ]
   );
-  mkDerivation = { pname, description, script, scriptArgs } : pkgs.stdenv.mkDerivation {
+  mkDerivation = { pname
+                 , description
+                 , script
+                 , scriptArgs
+                 , pretrained ? ""
+                 , numGpu
+                 } :
+                   let pretrained_str =
+                         if pretrained == ""
+                         then ""
+                         else " --resume ${pretrained.out}/output/checkpoint.pth";
+                   in  pkgs.stdenv.mkDerivation {
     pname = pname;
     version = "1";
     nativeBuildInputs = [
@@ -35,56 +46,11 @@ let
       mkdir output
       ln -s ${bdd100k.out} bdd100k
       if [ ${script} = "train.py" ] ; then 
-        python -m torch.distributed.launch --nproc_per_node=3 --use_env \
-          ${script} --output-dir "${scriptArgs.output}" --world-size 3
-      else
-        python ${script} \
-          --output-dir "${scriptArgs.output}" 
-      fi
-    '';
-    installPhase = ''
-      mkdir -p $out
-      cp -r ${scriptArgs.output} $out
-    '';
-    meta = with lib; {
-      inherit description;
-      longDescription = ''
-      '';
-      homepage = "";
-      license = licenses.bsd3;
-      platforms = platforms.all;
-      maintainers = with maintainers; [ junjihashimoto tscholak ];
-    };
-  };
-  mkDerivation2 = { pname, description, script, scriptArgs, pretrained } : pkgs.stdenv.mkDerivation {
-    pname = pname;
-    version = "2";
-    nativeBuildInputs = [
-      myPython
-      pkgs.curl
-      bdd100k
-      pretrained
-    ];
-    buildInputs =  [];
-    src = ./src;
-    buildPhase = ''
-      export CURL_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
-      #export REQUESTS_CA_BUNDLE=""
-      export TRANSFORMERS_CACHE=$TMPDIR
-      export XDG_CACHE_HOME=$TMPDIR
-
-      export PIP_PREFIX=$(pwd)/_build/pip_packages
-      export PYTHONPATH="$PIP_PREFIX/${myPython.sitePackages}:$PYTHONPATH"
-      export PATH="$PIP_PREFIX/bin:$PATH"
-      unset SOURCE_DATE_EPOCH
-      mkdir output
-      ln -s ${bdd100k.out} bdd100k
-      if [ ${script} = "train.py" ] ; then 
-        python -m torch.distributed.launch --nproc_per_node=3 --use_env \
-          ${script} \
-            --resume "${pretrained.out}/output/checkpoint.pth" \
-            --epochs "${scriptArgs.epochs}" \
-            --output-dir "${scriptArgs.output}" --world-size 3
+        python -m torch.distributed.launch --nproc_per_node=${numGpu} --use_env \
+          "${pretrained_str} \
+          ${script} --output-dir "${scriptArgs.output}" --world-size ${numGpu} \
+          --epochs "${scriptArgs.epochs}" \
+          --lr "${scriptArgs.lr}"
       else
         python ${script} \
           --output-dir "${scriptArgs.output}" 
@@ -134,19 +100,13 @@ rec {
   train = mkDerivation {
     pname = "torchvision-fasterrcnn-trained";
     description = "Trained fasterrcnn";
+    # pretrained = checkpoint;
+    numGpu = 3;
     script = "train.py";
     scriptArgs = {
       output = "output";
-    };
-  };
-  train2 = mkDerivation2 {
-    pname = "torchvision-fasterrcnn-trained";
-    description = "Trained fasterrcnn";
-    pretrained = checkpoint;
-    script = "train.py";
-    scriptArgs = {
-      epochs = "56";
-      output = "output";
+      lr = "0.12";
+      epochs = "25";
     };
   };
 }
