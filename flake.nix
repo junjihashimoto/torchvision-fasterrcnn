@@ -13,12 +13,11 @@
   };
   
   inputs = {
-#    nixpkgs.url = "github:NixOS/nixpkgs";
-    nixpkgs.url = "github:junjihashimoto/nixpkgs?rev=71cda4fbef0c064b4df82ac65dd2cc868bb37c32";
+    nixpkgs.url = "github:NixOS/nixpkgs?rev=8b0f315b7691adcee291b2ff139a1beed7c50d94";
     flake-utils.url = "github:numtide/flake-utils";
     hasktorch-datasets.url = "github:hasktorch/hasktorch-datasets";
     poetry2nix = {
-      url = "github:nix-community/poetry2nix";
+      url = "github:nix-community/poetry2nix?rev=046bddd753f99ce73ab2fbb91a2d5f620eadae39";
       flake = false;
     };
   };
@@ -35,10 +34,14 @@
         };
 
         packageName = "torchvision-fasterrcnn";
-        fasterrcnn = pkgs.callPackage ./default.nix {bdd100k = hasktorch-datasets.packages.${system}.datasets-bdd100k-coco;};
+        fasterrcnn = pkgs.callPackage ./default.nix {
+          bdd100k = hasktorch-datasets.packages.${system}.datasets-bdd100k-coco;
+          hasktorch-datasets-utils = hasktorch-datasets.lib.${system}.utils;
+        };
       in {
         packages = {
           train = fasterrcnn.train;
+          test = fasterrcnn.test;
         };
 
         # defaultPackage = self.packages.${system}.${packageName};

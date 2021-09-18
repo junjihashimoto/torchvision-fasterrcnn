@@ -35,9 +35,12 @@ from engine import train_one_epoch, evaluate
 import presets
 import utils
 
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 
 def get_dataset(name, image_set, transform, data_path):
     paths = {
+        "bdd100k": (data_path, get_coco, 13),
         "coco": (data_path, get_coco, 91),
         "coco_kp": (data_path, get_coco_kp, 2)
     }
@@ -55,8 +58,8 @@ def get_args_parser(add_help=True):
     import argparse
     parser = argparse.ArgumentParser(description='PyTorch Detection Training', add_help=add_help)
 
-    parser.add_argument('--data-path', default='few-bdd100k', help='dataset')
-    parser.add_argument('--dataset', default='coco', help='dataset')
+    parser.add_argument('--data-path', default='bdd100k', help='dataset')
+    parser.add_argument('--dataset', default='bdd100k', help='dataset')
     parser.add_argument('--model', default='fasterrcnn_resnet50_fpn', help='model')
     parser.add_argument('--device', default='cuda', help='device')
     parser.add_argument('-b', '--batch-size', default=2, type=int,
@@ -111,6 +114,8 @@ def main(args):
     print("Loading data")
 
     dataset_test, num_classes = get_dataset(args.dataset, "val", get_transform(False, args.data_augmentation), args.data_path)
+    print("num_classes:")
+    print(num_classes)
 
     print("Creating data loaders")
     if args.distributed:
@@ -136,11 +141,10 @@ def main(args):
     if args.distributed and args.sync_bn:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
-    model_without_ddp = model
-    if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
-        model_without_ddp = model.module
-
+    if args.resume:
+        checkpoint = torch.load(args.resume, map_location='cpu')
+        model.load_state_dict(checkpoint['model'])
+        
     print("Start test")
     start_time = time.time()
     evaluate(model, data_loader_test, device=device)

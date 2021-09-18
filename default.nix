@@ -1,9 +1,10 @@
 { pkgs
 , bdd100k
+, hasktorch-datasets-utils
 }:
 let
   lib = pkgs.lib;
-  myPython = pkgs.python3.withPackages (ps: with ps;
+  myPython = pkgs.python39.withPackages (ps: with ps;
     [ opencv4
       pillow
       pytorch-bin
@@ -18,6 +19,7 @@ let
                  , scriptArgs
                  , pretrained ? ""
                  , numGpu
+                 , datasets
                  } :
                    let pretrained_str =
                          if pretrained == ""
@@ -29,10 +31,14 @@ let
     nativeBuildInputs = [
       myPython
       pkgs.curl
-      bdd100k
+      datasets
     ];
     buildInputs =  [];
-    src = ./src;
+    src = hasktorch-datasets-utils.excludeFiles 
+      [ "^test\.py$"
+        "^inference\.py$"
+      ]
+      ./src;
     buildPhase = ''
       export CURL_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
       #export REQUESTS_CA_BUNDLE=""
@@ -67,7 +73,60 @@ let
       homepage = "";
       license = licenses.bsd3;
       platforms = platforms.all;
-      maintainers = with maintainers; [ junjihashimoto tscholak ];
+      maintainers = with maintainers; [ junjihashimoto ];
+    };
+  };
+  testDerivation = { pname
+         , description
+         , script
+         , scriptArgs
+         , pretrained
+         , datasets
+         } :
+           let pretrained_str = " --resume ${pretrained.out}/output/model.pth";
+           in  pkgs.stdenv.mkDerivation {
+    pname = pname;
+    version = "1";
+    nativeBuildInputs = [
+      myPython
+      pkgs.curl
+      pretrained
+      datasets
+    ];
+    buildInputs =  [];
+    src = hasktorch-datasets-utils.excludeFiles 
+      [ "^train\.py$"
+        "^inference\.py$"
+      ]
+      ./src;
+    buildPhase = ''
+      export CURL_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
+      #export REQUESTS_CA_BUNDLE=""
+      export TRANSFORMERS_CACHE=$TMPDIR
+      export XDG_CACHE_HOME=$TMPDIR
+
+      export PIP_PREFIX=$(pwd)/_build/pip_packages
+      export PYTHONPATH="$PIP_PREFIX/${myPython.sitePackages}:$PYTHONPATH"
+      export PATH="$PIP_PREFIX/bin:$PATH"
+      unset SOURCE_DATE_EPOCH
+      mkdir output
+      ln -s ${bdd100k.out} bdd100k
+      python ${script} \
+        ${pretrained_str} \
+        --output-dir "${scriptArgs.output}" 
+    '';
+    installPhase = ''
+      mkdir -p $out
+      cp -r ${scriptArgs.output} $out
+    '';
+    meta = with lib; {
+      inherit description;
+      longDescription = ''
+      '';
+      homepage = "";
+      license = licenses.bsd3;
+      platforms = platforms.all;
+      maintainers = with maintainers; [ junjihashimoto ];
     };
   };
   checkpoint = pkgs.stdenv.mkDerivation {
@@ -91,7 +150,31 @@ let
       homepage = "";
       license = licenses.bsd3;
       platforms = platforms.all;
-      maintainers = with maintainers; [ junjihashimoto tscholak ];
+      maintainers = with maintainers; [ junjihashimoto ];
+    };
+  };
+  pretrainedModel = pkgs.stdenv.mkDerivation {
+    pname = "pretrained-fasterrcnn";
+    version = "1";
+    src = builtins.fetchurl {
+        "sha256"= "1gm6xnfacpirriykhjz1ba062lqbwr9v8y1608vr1j7bpm4kb3y6";
+        "url"= "https://github.com/hasktorch/hasktorch-datasets/releases/download/bdd100k/torchvision_fasterrcnn_model.pth";
+    };
+    unpackCmd = ''
+      mkdir -p $out/output
+      cp "$curSrc" $out/output/model.pth
+      sourceRoot=`pwd`
+    '';
+    dontFixup = true;
+    dontInstall = true;
+    meta = with lib; {
+      inherit description;
+      longDescription = ''
+      '';
+      homepage = "";
+      license = licenses.bsd3;
+      platforms = platforms.all;
+      maintainers = with maintainers; [ junjihashimoto ];
     };
   };
   
@@ -102,11 +185,22 @@ rec {
     description = "Trained fasterrcnn";
     # pretrained = checkpoint;
     numGpu = 3;
+    datasets = bdd100k;
     script = "train.py";
     scriptArgs = {
       output = "output";
       lr = "0.12";
       epochs = "25";
     };
+  };
+  test = testDerivation {
+    pname = "torchvision-fasterrcnn-test";
+    description = "The test of fasterrcnn";
+    script = "test.py";
+    scriptArgs = {
+      output = "output";
+    };
+    pretrained = pretrainedModel;
+    datasets = bdd100k;
   };
 }
