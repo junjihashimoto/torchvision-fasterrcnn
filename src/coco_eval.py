@@ -26,6 +26,10 @@ class CocoEvaluator(object):
         self.coco_eval = {}
         for iou_type in iou_types:
             self.coco_eval[iou_type] = COCOeval(coco_gt, iouType=iou_type)
+            self.coco_eval[iou_type].useCats = True
+            self.coco_eval[iou_type].catIds = coco_gt.getCatIds()
+            print("self.coco_eval[iou_type].catIds")
+            print(self.coco_eval[iou_type].catIds)
 
         self.img_ids = []
         self.eval_imgs = {k: [] for k in iou_types}

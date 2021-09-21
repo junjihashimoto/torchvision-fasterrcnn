@@ -35,9 +35,13 @@ from engine import train_one_epoch, evaluate, inference
 import presets
 import utils
 
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+
 
 def get_dataset(name, image_set, transform, data_path):
     paths = {
+        "bdd100k": (data_path, get_coco, 13),
         "coco": (data_path, get_coco, 91),
         "coco_kp": (data_path, get_coco_kp, 2)
     }
@@ -55,8 +59,9 @@ def get_args_parser(add_help=True):
     import argparse
     parser = argparse.ArgumentParser(description='PyTorch Detection Training', add_help=add_help)
 
-    parser.add_argument('--data-path', default='few-bdd100k', help='dataset')
-    parser.add_argument('--dataset', default='coco', help='dataset')
+    parser.add_argument('--data-path', default='bdd100k', help='dataset')
+    parser.add_argument('--data-dir', default='images/valids', help='dataset')
+    parser.add_argument('--dataset', default='bdd100k', help='dataset')
     parser.add_argument('--model', default='fasterrcnn_resnet50_fpn', help='model')
     parser.add_argument('--device', default='cuda', help='device')
     parser.add_argument('-b', '--batch-size', default=2, type=int,
@@ -139,7 +144,17 @@ def main(args):
     model.eval()
     model.to(device)
 
-    inference(model, data_loader_test, device=device)
+    if args.resume:
+        checkpoint = torch.load(args.resume, map_location='cpu')
+        model.load_state_dict(checkpoint['model'])
+    
+    inference(model,
+              data_loader_test,
+              device=device,
+              dataset_name= args.data_path,
+              dataset_dir= args.data_dir,
+              output_dir= args.output_dir
+              )
 
 
 if __name__ == "__main__":

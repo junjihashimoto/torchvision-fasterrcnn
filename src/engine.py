@@ -114,7 +114,13 @@ def evaluate(model, data_loader, device):
     return coco_evaluator
 
 @torch.no_grad()
-def inference(model, data_loader, device):
+def inference(model,
+              data_loader,
+              device,
+              dataset_name="few-bdd100k",
+              dataset_dir="images/valids",
+              output_dir="output"
+              ):
     model.eval()
 
     for images, targets in data_loader:
@@ -133,7 +139,7 @@ def inference(model, data_loader, device):
             #print(image.dtype)
             #print(image[0,0,0])
             #print(target["file_name"])
-            img = Image.open('few-bdd100k/images/valids/' + target["file_name"]).convert('RGB')
+            img = Image.open(dataset_name + "/" + dataset_dir + "/" + target["file_name"]).convert('RGB')
             #print(image.shape)
             #img = F.to_tensor(img)
             #print(img.shape)
@@ -146,4 +152,4 @@ def inference(model, data_loader, device):
             for box, label in zip(output["boxes"],output["labels"]):
                 draw.rectangle([(box[0], box[1]), (box[2], box[3])], outline="red", width=1)
                 draw.text((box[0], box[1]), str(int(label)), fill='white')
-            img.save(target["file_name"])
+            img.save(output_dir + "/" + target["file_name"])

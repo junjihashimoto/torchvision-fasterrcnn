@@ -36,12 +36,14 @@
         packageName = "torchvision-fasterrcnn";
         fasterrcnn = pkgs.callPackage ./default.nix {
           bdd100k = hasktorch-datasets.packages.${system}.datasets-bdd100k-coco;
+          bdd100k-mini = hasktorch-datasets.packages.${system}.datasets-bdd100k-mini-coco;
           hasktorch-datasets-utils = hasktorch-datasets.lib.${system}.utils;
         };
       in {
         packages = {
           train = fasterrcnn.train;
           test = fasterrcnn.test;
+          detect = fasterrcnn.detect;
         };
 
         # defaultPackage = self.packages.${system}.${packageName};

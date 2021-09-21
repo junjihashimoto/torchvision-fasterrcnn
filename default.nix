@@ -1,5 +1,6 @@
 { pkgs
 , bdd100k
+, bdd100k-mini
 , hasktorch-datasets-utils
 }:
 let
@@ -50,7 +51,7 @@ let
       export PATH="$PIP_PREFIX/bin:$PATH"
       unset SOURCE_DATE_EPOCH
       mkdir output
-      ln -s ${bdd100k.out} bdd100k
+      ln -s ${datasets.out} bdd100k
       if [ ${script} = "train.py" ] ; then 
         python -m torch.distributed.launch --nproc_per_node=${numGpu} --use_env \
           "${pretrained_str} \
@@ -110,7 +111,60 @@ let
       export PATH="$PIP_PREFIX/bin:$PATH"
       unset SOURCE_DATE_EPOCH
       mkdir output
-      ln -s ${bdd100k.out} bdd100k
+      ln -s ${datasets.out} bdd100k
+      python ${script} \
+        ${pretrained_str} \
+        --output-dir "${scriptArgs.output}" 
+    '';
+    installPhase = ''
+      mkdir -p $out
+      cp -r ${scriptArgs.output} $out
+    '';
+    meta = with lib; {
+      inherit description;
+      longDescription = ''
+      '';
+      homepage = "";
+      license = licenses.bsd3;
+      platforms = platforms.all;
+      maintainers = with maintainers; [ junjihashimoto ];
+    };
+  };
+  detectDerivation = { pname
+         , description
+         , script
+         , scriptArgs
+         , pretrained
+         , datasets
+         } :
+           let pretrained_str = " --resume ${pretrained.out}/output/model.pth";
+           in  pkgs.stdenv.mkDerivation {
+    pname = pname;
+    version = "1";
+    nativeBuildInputs = [
+      myPython
+      pkgs.curl
+      pretrained
+      datasets
+    ];
+    buildInputs =  [];
+    src = hasktorch-datasets-utils.excludeFiles 
+      [ "^train\.py$"
+        "^test\.py$"
+      ]
+      ./src;
+    buildPhase = ''
+      export CURL_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
+      #export REQUESTS_CA_BUNDLE=""
+      export TRANSFORMERS_CACHE=$TMPDIR
+      export XDG_CACHE_HOME=$TMPDIR
+
+      export PIP_PREFIX=$(pwd)/_build/pip_packages
+      export PYTHONPATH="$PIP_PREFIX/${myPython.sitePackages}:$PYTHONPATH"
+      export PATH="$PIP_PREFIX/bin:$PATH"
+      unset SOURCE_DATE_EPOCH
+      mkdir output
+      ln -s ${datasets.out} bdd100k
       python ${script} \
         ${pretrained_str} \
         --output-dir "${scriptArgs.output}" 
@@ -202,5 +256,15 @@ rec {
     };
     pretrained = pretrainedModel;
     datasets = bdd100k;
+  };
+  detect = detectDerivation {
+    pname = "torchvision-fasterrcnn-detect";
+    description = "The inference of fasterrcnn";
+    script = "inference.py";
+    scriptArgs = {
+      output = "output";
+    };
+    pretrained = pretrainedModel;
+    datasets = bdd100k-mini;
   };
 }
