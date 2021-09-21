@@ -121,6 +121,10 @@ def inference(model,
               dataset_dir="images/valids",
               output_dir="output"
               ):
+    coco = get_coco_api_from_dataset(data_loader.dataset)
+    catIDs = coco.getCatIds()
+    cats = coco.loadCats(catIDs)
+    print(cats)
     model.eval()
 
     for images, targets in data_loader:
@@ -133,23 +137,11 @@ def inference(model,
         outputs = model(images)
 
         for (output,image,target) in zip(outputs,images,targets):
-            #print("---")
-            #print(output)
-            #print(image.shape)
-            #print(image.dtype)
-            #print(image[0,0,0])
-            #print(target["file_name"])
             img = Image.open(dataset_name + "/" + dataset_dir + "/" + target["file_name"]).convert('RGB')
-            #print(image.shape)
-            #img = F.to_tensor(img)
-            #print(img.shape)
-            #print(img.dtype)
-            #print(img[0,0,0])
-
             draw = ImageDraw.Draw(img)
             #fnt = ImageFont.truetype("arial.ttf", 10)#40
             #text_w, text_h = fnt.getsize(label)
-            for box, label in zip(output["boxes"],output["labels"]):
+            for box, label, score  in zip(output["boxes"],output["labels"],output["scores"]):
                 draw.rectangle([(box[0], box[1]), (box[2], box[3])], outline="red", width=1)
-                draw.text((box[0], box[1]), str(int(label)), fill='white')
+                draw.text((box[0], box[1]), cats[int(label)]["name"], fill='white')
             img.save(output_dir + "/" + target["file_name"])
