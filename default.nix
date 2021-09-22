@@ -126,11 +126,15 @@ let
       ln -s ${datasets.out} bdd100k
       python ${script} \
         ${pretrained_str} \
-        --output-dir "${scriptArgs.output}" 
+        --output-dir "${scriptArgs.output}" \
+        2>&1 | tee test.log
+      python log2json.py test.log
     '';
     installPhase = ''
       mkdir -p $out
       cp -r ${scriptArgs.output} $out
+      cp test.log $out/
+      cp map_results.json $out/
     '';
     meta = with lib; {
       inherit description;
