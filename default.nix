@@ -250,7 +250,7 @@ let
   
 in
 rec {
-  train = mkDerivation {
+  train = args@{...} : mkDerivation ({
     pname = "torchvision-fasterrcnn-trained";
     description = "Trained fasterrcnn";
     # pretrained = checkpoint;
@@ -262,8 +262,8 @@ rec {
       lr = "0.12";
       epochs = "25";
     };
-  };
-  test = testDerivation {
+  } // args);
+  test = args@{...} : testDerivation ({
     pname = "torchvision-fasterrcnn-test";
     description = "The test of fasterrcnn";
     script = "test.py";
@@ -272,8 +272,8 @@ rec {
     };
     pretrained = pretrainedModel;
     datasets = bdd100k-mini;
-  };
-  detect = detectDerivation {
+  } // args);
+  detect = args@{...} : detectDerivation ({
     pname = "torchvision-fasterrcnn-detect";
     description = "The inference of fasterrcnn";
     script = "inference.py";
@@ -282,5 +282,5 @@ rec {
     };
     pretrained = pretrainedModel;
     datasets = bdd100k-mini;
-  };
+  } // args);
 }

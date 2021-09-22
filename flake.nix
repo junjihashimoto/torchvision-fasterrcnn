@@ -40,10 +40,15 @@
           hasktorch-datasets-utils = hasktorch-datasets.lib.${system}.utils;
         };
       in {
+        lib = {
+          train = args@{...}: fasterrcnn.train args;
+          test = args@{...}: fasterrcnn.test args;
+          detect = args@{...}: fasterrcnn.detect args;
+        };
         packages = {
-          train = fasterrcnn.train;
-          test = fasterrcnn.test;
-          detect = fasterrcnn.detect;
+          train = fasterrcnn.train {};
+          test = fasterrcnn.test {};
+          detect = fasterrcnn.detect {};
         };
 
         # defaultPackage = self.packages.${system}.${packageName};
