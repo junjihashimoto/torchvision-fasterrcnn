@@ -5,12 +5,24 @@
 }:
 let
   lib = pkgs.lib;
+  patched-pycocotools = pkgs.python39Packages.pycocotools.overrideAttrs (old: rec{
+    patches = [./patches/pycocotools.patch];
+  });
   myPython = pkgs.python39.withPackages (ps: with ps;
     [ opencv4
       pillow
       pytorch-bin
       torchvision-bin
       pycocotools
+      numpy
+    ]
+  );
+  myPythonForTest = pkgs.python39.withPackages (ps: with ps;
+    [ opencv4
+      pillow
+      pytorch-bin
+      torchvision-bin
+      patched-pycocotools
       numpy
     ]
   );
@@ -89,7 +101,7 @@ let
     pname = pname;
     version = "1";
     nativeBuildInputs = [
-      myPython
+      myPythonForTest
       pkgs.curl
       pretrained
       datasets
@@ -255,7 +267,7 @@ rec {
       output = "output";
     };
     pretrained = pretrainedModel;
-    datasets = bdd100k;
+    datasets = bdd100k-mini;
   };
   detect = detectDerivation {
     pname = "torchvision-fasterrcnn-detect";

@@ -1,0 +1,40 @@
+diff -ru pycocotools-2.0.2-org/pycocotools/cocoeval.py pycocotools-2.0.2/pycocotools/cocoeval.py
+--- pycocotools-2.0.2-org/pycocotools/cocoeval.py	2021-09-22 00:22:05.085245877 +0000
++++ pycocotools-2.0.2/pycocotools/cocoeval.py	2021-09-22 01:22:57.489137336 +0000
+@@ -424,7 +424,7 @@
+         Compute and display summary metrics for evaluation results.
+         Note this functin can *only* be applied on the default parameter setting
+         '''
+-        def _summarize( ap=1, iouThr=None, areaRng='all', maxDets=100 ):
++        def _summarize( ap=1, iouThr=None, areaRng='all', maxDets=100, showCategory=False ):
+             p = self.params
+             iStr = ' {:<18} {} @[ IoU={:<9} | area={:>6s} | maxDets={:>3d} ] = {:0.3f}'
+             titleStr = 'Average Precision' if ap == 1 else 'Average Recall'
+@@ -453,12 +453,26 @@
+                 mean_s = -1
+             else:
+                 mean_s = np.mean(s[s>-1])
++
+             print(iStr.format(titleStr, typeStr, iouStr, areaRng, maxDets, mean_s))
++            #cacluate AP(average precision) for each category
++            if showCategory:
++                num_classes = len(self.params.catIds)
++                avg_ap = 0.0
++                num_avg_ap = 0.0
++                for i in range(0, num_classes):
++                    ss = s[:,:,i,:]
++                    mean_ss = np.mean(ss[ss>-1])
++                    print('   category : %d : %.3f' % (i,mean_ss))
++                    if mean_ss > -1:
++                        avg_ap +=np.mean(s[:,:,i,:])
++                        num_avg_ap += 1
++                print('   (all categories) mAP : %.3f' % (avg_ap / num_avg_ap))
+             return mean_s
+         def _summarizeDets():
+             stats = np.zeros((12,))
+             stats[0] = _summarize(1)
+-            stats[1] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[2])
++            stats[1] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[2],showCategory=True)
+             stats[2] = _summarize(1, iouThr=.75, maxDets=self.params.maxDets[2])
+             stats[3] = _summarize(1, areaRng='small', maxDets=self.params.maxDets[2])
+             stats[4] = _summarize(1, areaRng='medium', maxDets=self.params.maxDets[2])
