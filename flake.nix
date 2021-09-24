@@ -34,9 +34,13 @@
         };
 
         packageName = "torchvision-fasterrcnn";
+        bdd100k = hasktorch-datasets.packages.${system}.datasets-bdd100k-coco;
+        bdd100k-mini = hasktorch-datasets.packages.${system}.datasets-bdd100k-mini-coco;
+        sample-images = hasktorch-datasets.packages.${system}.datasets-sample-images;
+        img2coco = hasktorch-datasets.lib.${system}.datasets.img2coco;
         fasterrcnn = pkgs.callPackage ./default.nix {
-          bdd100k = hasktorch-datasets.packages.${system}.datasets-bdd100k-coco;
-          bdd100k-mini = hasktorch-datasets.packages.${system}.datasets-bdd100k-mini-coco;
+          inherit bdd100k;
+          inherit bdd100k-mini;
           hasktorch-datasets-utils = hasktorch-datasets.lib.${system}.utils;
         };
       in {
@@ -49,6 +53,12 @@
           train = fasterrcnn.train {};
           test = fasterrcnn.test {};
           detect = fasterrcnn.detect {};
+          detect-sample = fasterrcnn.detect {
+            datasets = img2coco  {
+              dataset = sample-images;
+            };
+          };
+          inherit bdd100k;
         };
 
         # defaultPackage = self.packages.${system}.${packageName};
