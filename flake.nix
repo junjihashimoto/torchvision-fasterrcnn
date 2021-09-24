@@ -50,6 +50,7 @@
           detect = args@{...}: fasterrcnn.detect args;
         };
         packages = {
+          dataset = bdd100k;
           train = fasterrcnn.train {};
           test = fasterrcnn.test {};
           detect = fasterrcnn.detect {};
