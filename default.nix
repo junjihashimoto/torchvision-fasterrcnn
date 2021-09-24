@@ -65,9 +65,9 @@ let
       mkdir output
       ln -s ${datasets.out} bdd100k
       if [ ${script} = "train.py" ] ; then 
-        python -m torch.distributed.launch --nproc_per_node=${numGpu} --use_env \
+        python -m torch.distributed.launch --nproc_per_node=${toString numGpu} --use_env \
           "${pretrained_str} \
-          ${script} --output-dir "${scriptArgs.output}" --world-size ${numGpu} \
+          ${script} --output-dir "${scriptArgs.output}" --world-size ${toString numGpu} \
           --epochs "${scriptArgs.epochs}" \
           --lr "${scriptArgs.lr}"
       else
