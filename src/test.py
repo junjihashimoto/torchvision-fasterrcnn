@@ -147,7 +147,8 @@ def main(args):
         
     print("Start test")
     start_time = time.time()
-    evaluate(model, data_loader_test, device=device)
+    (ret,_) = evaluate(model, data_loader_test, device=device)
+    print(ret[0][1])
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Test time {}'.format(total_time_str))

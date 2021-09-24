@@ -13,15 +13,6 @@ let
       pillow
       pytorch-bin
       torchvision-bin
-      pycocotools
-      numpy
-    ]
-  );
-  myPythonForTest = pkgs.python39.withPackages (ps: with ps;
-    [ opencv4
-      pillow
-      pytorch-bin
-      torchvision-bin
       patched-pycocotools
       numpy
     ]
@@ -101,7 +92,7 @@ let
     pname = pname;
     version = "1";
     nativeBuildInputs = [
-      myPythonForTest
+      myPython
       pkgs.curl
       pretrained
       datasets

@@ -203,6 +203,7 @@ def main(args):
 
     print("Start training")
     start_time = time.time()
+    max_mAP = 0
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
@@ -216,15 +217,23 @@ def main(args):
                 'args': args,
                 'epoch': epoch
             }
-            utils.save_on_master(
-                checkpoint,
-                os.path.join(args.output_dir, 'model_{}.pth'.format(epoch)))
+            #utils.save_on_master(
+            #    checkpoint,
+            #    os.path.join(args.output_dir, 'model_{}.pth'.format(epoch)))
             utils.save_on_master(
                 checkpoint,
                 os.path.join(args.output_dir, 'checkpoint.pth'))
 
         # evaluate after every epoch
-        evaluate(model, data_loader_test, device=device)
+        (ret,_) = evaluate(model, data_loader_test, device=device)
+        mAP = ret[0][1]
+        if args.output_dir:
+            if max_mAP > mAP:
+                max_mAP = mAP
+                utils.save_on_master(
+                    checkpoint,
+                    os.path.join(args.output_dir, 'best.pth'))
+        
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
