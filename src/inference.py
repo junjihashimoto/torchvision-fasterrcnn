@@ -16,7 +16,6 @@ from PIL import ImageDraw, ImageFont
 from PIL import Image
 
 from group_by_aspect_ratio import GroupedBatchSampler, create_aspect_ratio_groups
-from engine import train_one_epoch, evaluate
 
 import presets
 import utils
@@ -129,6 +128,7 @@ def inference(model,
             #fnt = ImageFont.truetype("arial.ttf", 10)#40
             #text_w, text_h = fnt.getsize(label)
             for box, label, score  in zip(output["boxes"],output["labels"],output["scores"]):
+                print(f"%s, %s, score = %.3f" % (target["file_name"], cats[int(label)]["name"], score))
                 draw.rectangle([(box[0], box[1]), (box[2], box[3])], outline="red", width=1)
                 draw.text((box[0], box[1]), cats[int(label)]["name"], fill='white')
             img.save(output_dir + "/" + target["file_name"])

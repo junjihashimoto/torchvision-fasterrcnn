@@ -63,20 +63,14 @@ let
       ls -l ../torch/hub/checkpoints
       mkdir output
       ln -s ${datasets.out} bdd100k
-      if [ ${script} = "train.py" ] ; then 
-        python -m torch.distributed.launch --nproc_per_node=${toString numGpu} --use_env \
-          ${pretrained_str} \
-          ${script} --output-dir "${scriptArgs.output}" --world-size ${toString numGpu} \
-          --epochs "${scriptArgs.epochs}" \
-          --lr "${scriptArgs.lr}"
-      else
-        python ${script} \
-          --output-dir "${scriptArgs.output}" 
-      fi
+      python -m torch.distributed.launch --nproc_per_node=${toString numGpu} --use_env \
+        ${script} \
+        ${pretrained_str} \
+        ${expandStriptArgs scriptArgs}
     '';
     installPhase = ''
       mkdir -p $out
-      cp -r ${scriptArgs.output} $out
+      cp -r ${scriptArgs.output-dir} $out
     '';
     meta = with lib; {
       inherit description;
@@ -151,7 +145,12 @@ let
   };
   expandStriptArgs = scriptArgs:
     let names = builtins.attrNames scriptArgs;
-        args = builtins.map (n: "--" + n + " " + "\"" + scriptArgs."${n}" + "\"") names;
+        args = builtins.map (n:
+          "--" + n + " " +
+          "\"" +
+          builtins.toString (scriptArgs."${n}") +
+          "\""
+        ) names;
     in builtins.concatStringsSep " " args;
   detectDerivation = { pname
          , description
@@ -261,17 +260,21 @@ let
   
 in
 rec {
-  train = args@{...} : mkDerivation ({
+  train = args@{...} : mkDerivation (rec {
     pname = "torchvision-fasterrcnn-trained";
     description = "Trained fasterrcnn";
     # pretrained = checkpoint;
     numGpu = 3;
     datasets = bdd100k;
     script = "train.py";
-    scriptArgs = {
-      output = "output";
-      lr = "0.12";
-      epochs = "25";
+    scriptArgs = rec {
+      output-dir = "output";
+      epochs = 26;
+      world-size = numGpu;
+      batch-size = 12;
+      # https://arxiv.org/abs/1711.00489
+      lr = 0.02 * (batch-size / 2.0);
+      momentum = 0.9 * (1.0-(1.0/(batch-size / 2.0)));
     };
   } // args);
   test = args@{...} : testDerivation ({
