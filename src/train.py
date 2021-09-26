@@ -57,6 +57,9 @@ np.random.seed(0)
 
 def get_dataset(name, image_set, transform, data_path):
     paths = {
+        # https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
+        # labels (Int64Tensor[N]): the label for each bounding box. 0 represents always the background class.
+        # 13 class + background
         "bdd100k": (data_path, get_coco, 13+1),
         "coco": (data_path, get_coco, 91),
         "coco_kp": (data_path, get_coco_kp, 2)
