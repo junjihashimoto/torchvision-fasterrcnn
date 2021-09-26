@@ -30,7 +30,7 @@ torch.hub.download_url_to_file=download_url_to_file
 
 def get_dataset(name, image_set, transform, data_path):
     paths = {
-        "bdd100k": (data_path, get_coco, 13),
+        "bdd100k": (data_path, get_coco, 13+1),
         "coco": (data_path, get_coco, 91),
         "coco_kp": (data_path, get_coco_kp, 2)
     }

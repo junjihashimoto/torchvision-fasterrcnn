@@ -181,8 +181,8 @@ def convert_to_coco_api(ds):
             ann = {}
             ann['image_id'] = image_id
             ann['bbox'] = bboxes[i]
-            ann['category_id'] = (labels[i]+1)
-            categories.add(labels[i]+1)
+            ann['category_id'] = (labels[i])
+            categories.add(labels[i])
             ann['area'] = areas[i]
             ann['iscrowd'] = iscrowd[i]
             ann['id'] = ann_id

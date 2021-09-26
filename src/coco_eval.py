@@ -46,8 +46,6 @@ class CocoEvaluator(object):
             coco_eval.cocoDt = coco_dt
             coco_eval.params.imgIds = list(img_ids)
             img_ids, eval_imgs = evaluate(coco_eval)
-            print("eval_imgs")
-            print(eval_imgs)
 
             self.eval_imgs[iou_type].append(eval_imgs)
 
@@ -93,7 +91,7 @@ class CocoEvaluator(object):
                 [
                     {
                         "image_id": original_id,
-                        "category_id": (labels[k]+1),
+                        "category_id": (labels[k]),
                         "bbox": box,
                         "score": scores[k],
                     }
@@ -128,7 +126,7 @@ class CocoEvaluator(object):
                 [
                     {
                         "image_id": original_id,
-                        "category_id": (labels[k]+1),
+                        "category_id": (labels[k]),
                         "segmentation": rle,
                         "score": scores[k],
                     }
@@ -154,7 +152,7 @@ class CocoEvaluator(object):
                 [
                     {
                         "image_id": original_id,
-                        "category_id": (labels[k]+1),
+                        "category_id": (labels[k]),
                         'keypoints': keypoint,
                         "score": scores[k],
                     }
