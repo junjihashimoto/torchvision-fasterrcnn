@@ -20,6 +20,7 @@ the number of epochs should be adapted so that we have the same number of iterat
 import datetime
 import os
 import time
+import math
 
 import torch
 import torch.utils.data
@@ -30,7 +31,7 @@ import torchvision.models.detection.mask_rcnn
 from coco_utils import get_coco, get_coco_kp
 
 from group_by_aspect_ratio import GroupedBatchSampler, create_aspect_ratio_groups
-from engine import train_one_epoch, evaluate
+from engine import evaluate
 
 import presets
 import utils
@@ -40,6 +41,13 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 import random
 import numpy as np
+
+import torch.hub
+
+def download_url_to_file(url, dst, hash_prefix=None, progress=True):
+    print((url, dst, hash_prefix, progress))
+    
+torch.hub.download_url_to_file=download_url_to_file
 
 torch.manual_seed(0)
 random.seed(0)
@@ -127,6 +135,50 @@ def get_args_parser(add_help=True):
 
     return parser
 
+def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
+    model.train()
+    metric_logger = utils.MetricLogger(delimiter="  ")
+    metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
+    header = 'Epoch: [{}]'.format(epoch)
+
+    lr_scheduler = None
+    if epoch == 0:
+        warmup_factor = 1. / 1000
+        warmup_iters = min(1000, len(data_loader) - 1)
+
+        lr_scheduler = utils.warmup_lr_scheduler(optimizer, warmup_iters, warmup_factor)
+
+    for images, targets in metric_logger.log_every(data_loader, print_freq, header):
+        images = list(image.to(device) for image in images)
+        targets = [{k: (v.to(device) if type(v) is torch.Tensor else v) for k, v in t.items()} for t in targets]
+
+        loss_dict = model(images, targets)
+
+        losses = sum(loss for loss in loss_dict.values())
+
+        # reduce losses over all GPUs for logging purposes
+        loss_dict_reduced = utils.reduce_dict(loss_dict)
+        losses_reduced = sum(loss for loss in loss_dict_reduced.values())
+
+        loss_value = losses_reduced.item()
+
+        if not math.isfinite(loss_value):
+            print("Loss is {}, stopping training".format(loss_value))
+            print(loss_dict_reduced)
+            break
+        else:
+            #sys.exit(1)
+            optimizer.zero_grad()
+            losses.backward()
+            optimizer.step()
+    
+            if lr_scheduler is not None:
+                lr_scheduler.step()
+    
+            metric_logger.update(loss=losses_reduced, **loss_dict_reduced)
+            metric_logger.update(lr=optimizer.param_groups[0]["lr"])
+
+    return metric_logger
 
 def main(args):
     if args.output_dir:

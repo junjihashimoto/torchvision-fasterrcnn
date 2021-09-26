@@ -58,6 +58,9 @@ let
       export PYTHONPATH="$PIP_PREFIX/${myPython.sitePackages}:$PYTHONPATH"
       export PATH="$PIP_PREFIX/bin:$PATH"
       unset SOURCE_DATE_EPOCH
+      mkdir -p ../torch/hub/checkpoints
+      ln -s ${resnet50} ../torch/hub/checkpoints/resnet50-0676ba61.pth
+      ls -l ../torch/hub/checkpoints
       mkdir output
       ln -s ${datasets.out} bdd100k
       if [ ${script} = "train.py" ] ; then 
@@ -146,6 +149,10 @@ let
       maintainers = with maintainers; [ junjihashimoto ];
     };
   };
+  expandStriptArgs = scriptArgs:
+    let names = builtins.attrNames scriptArgs;
+        args = builtins.map (n: "--" + n + " " + "\"" + scriptArgs."${n}" + "\"") names;
+    in builtins.concatStringsSep " " args;
   detectDerivation = { pname
          , description
          , script
@@ -179,15 +186,19 @@ let
       export PYTHONPATH="$PIP_PREFIX/${myPython.sitePackages}:$PYTHONPATH"
       export PATH="$PIP_PREFIX/bin:$PATH"
       unset SOURCE_DATE_EPOCH
+      pwd
+      mkdir -p ../torch/hub/checkpoints
+      ln -s ${resnet50} ../torch/hub/checkpoints/resnet50-0676ba61.pth
+      ls -l ../torch/hub/checkpoints
       mkdir output
       ln -s ${datasets.out} bdd100k
       python ${script} \
         ${pretrained_str} \
-        --output-dir "${scriptArgs.output}" 
+        ${expandStriptArgs scriptArgs}
     '';
     installPhase = ''
       mkdir -p $out
-      cp -r ${scriptArgs.output} $out
+      cp -r ${scriptArgs.output-dir} $out
     '';
     meta = with lib; {
       inherit description;
@@ -278,7 +289,8 @@ rec {
     description = "The inference of fasterrcnn";
     script = "inference.py";
     scriptArgs = {
-      output = "output";
+      device = "cuda";
+      output-dir = "output";
     };
     pretrained = pretrainedModel;
     datasets = bdd100k-mini;

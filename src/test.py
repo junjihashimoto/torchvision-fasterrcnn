@@ -1,21 +1,4 @@
-r"""PyTorch Detection Training.
-
-To run in a multi-gpu environment, use the distributed launcher::
-
-    python -m torch.distributed.launch --nproc_per_node=$NGPU --use_env \
-        train.py ... --world-size $NGPU
-
-The default hyperparameters are tuned for training on 8 gpus and 2 images per gpu.
-    --lr 0.02 --batch-size 2 --world-size 8
-If you use different number of gpus, the learning rate should be changed to 0.02/8*$NGPU.
-
-On top of that, for training Faster/Mask R-CNN, the default hyperparameters are
-    --epochs 26 --lr-steps 16 22 --aspect-ratio-group-factor 3
-
-Also, if you train Keypoint R-CNN, the default hyperparameters are
-    --epochs 46 --lr-steps 36 43 --aspect-ratio-group-factor 3
-Because the number of images is smaller in the person keypoint subset of COCO,
-the number of epochs should be adapted so that we have the same number of iterations.
+r"""PyTorch Detection Test.
 """
 import datetime
 import os

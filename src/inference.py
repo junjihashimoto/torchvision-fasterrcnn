@@ -1,21 +1,4 @@
-r"""PyTorch Detection Training.
-
-To run in a multi-gpu environment, use the distributed launcher::
-
-    python -m torch.distributed.launch --nproc_per_node=$NGPU --use_env \
-        train.py ... --world-size $NGPU
-
-The default hyperparameters are tuned for training on 8 gpus and 2 images per gpu.
-    --lr 0.02 --batch-size 2 --world-size 8
-If you use different number of gpus, the learning rate should be changed to 0.02/8*$NGPU.
-
-On top of that, for training Faster/Mask R-CNN, the default hyperparameters are
-    --epochs 26 --lr-steps 16 22 --aspect-ratio-group-factor 3
-
-Also, if you train Keypoint R-CNN, the default hyperparameters are
-    --epochs 46 --lr-steps 36 43 --aspect-ratio-group-factor 3
-Because the number of images is smaller in the person keypoint subset of COCO,
-the number of epochs should be adapted so that we have the same number of iterations.
+r"""PyTorch Detection Inference.
 """
 import datetime
 import os
@@ -27,10 +10,13 @@ import torchvision
 import torchvision.models.detection
 import torchvision.models.detection.mask_rcnn
 
-from coco_utils import get_coco, get_coco_kp
+from coco_utils import get_coco, get_coco_kp, get_coco_api_from_dataset
+import matplotlib.pyplot as plt
+from PIL import ImageDraw, ImageFont
+from PIL import Image
 
 from group_by_aspect_ratio import GroupedBatchSampler, create_aspect_ratio_groups
-from engine import train_one_epoch, evaluate, inference
+from engine import train_one_epoch, evaluate
 
 import presets
 import utils
@@ -38,6 +24,12 @@ import utils
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
+import torch.hub
+
+def download_url_to_file(url, dst, hash_prefix=None, progress=True):
+    print((url, dst, hash_prefix, progress))
+    
+torch.hub.download_url_to_file=download_url_to_file
 
 def get_dataset(name, image_set, transform, data_path):
     paths = {
@@ -108,6 +100,38 @@ def get_args_parser(add_help=True):
 
     return parser
 
+
+@torch.no_grad()
+def inference(model,
+              data_loader,
+              device,
+              dataset_name="few-bdd100k",
+              dataset_dir="images/valids",
+              output_dir="output"
+              ):
+    coco = get_coco_api_from_dataset(data_loader.dataset)
+    catIDs = coco.getCatIds()
+    cats = coco.loadCats(catIDs)
+    model.eval()
+
+    for images, targets in data_loader:
+        images = list(img.to(device) for img in images)
+
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+        model_time = time.time()
+
+        outputs = model(images)
+
+        for (output,image,target) in zip(outputs,images,targets):
+            img = Image.open(dataset_name + "/" + dataset_dir + "/" + target["file_name"]).convert('RGB')
+            draw = ImageDraw.Draw(img)
+            #fnt = ImageFont.truetype("arial.ttf", 10)#40
+            #text_w, text_h = fnt.getsize(label)
+            for box, label, score  in zip(output["boxes"],output["labels"],output["scores"]):
+                draw.rectangle([(box[0], box[1]), (box[2], box[3])], outline="red", width=1)
+                draw.text((box[0], box[1]), cats[int(label)]["name"], fill='white')
+            img.save(output_dir + "/" + target["file_name"])
 
 def main(args):
     if args.output_dir:

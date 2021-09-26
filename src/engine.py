@@ -13,51 +13,6 @@ import matplotlib.pyplot as plt
 from PIL import ImageDraw, ImageFont
 from PIL import Image
 
-def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
-    model.train()
-    metric_logger = utils.MetricLogger(delimiter="  ")
-    metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
-    header = 'Epoch: [{}]'.format(epoch)
-
-    lr_scheduler = None
-    if epoch == 0:
-        warmup_factor = 1. / 1000
-        warmup_iters = min(1000, len(data_loader) - 1)
-
-        lr_scheduler = utils.warmup_lr_scheduler(optimizer, warmup_iters, warmup_factor)
-
-    for images, targets in metric_logger.log_every(data_loader, print_freq, header):
-        images = list(image.to(device) for image in images)
-        targets = [{k: (v.to(device) if type(v) is torch.Tensor else v) for k, v in t.items()} for t in targets]
-
-        loss_dict = model(images, targets)
-
-        losses = sum(loss for loss in loss_dict.values())
-
-        # reduce losses over all GPUs for logging purposes
-        loss_dict_reduced = utils.reduce_dict(loss_dict)
-        losses_reduced = sum(loss for loss in loss_dict_reduced.values())
-
-        loss_value = losses_reduced.item()
-
-        if not math.isfinite(loss_value):
-            print("Loss is {}, stopping training".format(loss_value))
-            print(loss_dict_reduced)
-            break
-        else:
-            #sys.exit(1)
-            optimizer.zero_grad()
-            losses.backward()
-            optimizer.step()
-    
-            if lr_scheduler is not None:
-                lr_scheduler.step()
-    
-            metric_logger.update(loss=losses_reduced, **loss_dict_reduced)
-            metric_logger.update(lr=optimizer.param_groups[0]["lr"])
-
-    return metric_logger
-
 
 def _get_iou_types(model):
     model_without_ddp = model
@@ -112,36 +67,3 @@ def evaluate(model, data_loader, device):
     ret = coco_evaluator.summarize()
     torch.set_num_threads(n_threads)
     return (ret,coco_evaluator)
-
-@torch.no_grad()
-def inference(model,
-              data_loader,
-              device,
-              dataset_name="few-bdd100k",
-              dataset_dir="images/valids",
-              output_dir="output"
-              ):
-    coco = get_coco_api_from_dataset(data_loader.dataset)
-    catIDs = coco.getCatIds()
-    cats = coco.loadCats(catIDs)
-    print(cats)
-    model.eval()
-
-    for images, targets in data_loader:
-        images = list(img.to(device) for img in images)
-
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-        model_time = time.time()
-
-        outputs = model(images)
-
-        for (output,image,target) in zip(outputs,images,targets):
-            img = Image.open(dataset_name + "/" + dataset_dir + "/" + target["file_name"]).convert('RGB')
-            draw = ImageDraw.Draw(img)
-            #fnt = ImageFont.truetype("arial.ttf", 10)#40
-            #text_w, text_h = fnt.getsize(label)
-            for box, label, score  in zip(output["boxes"],output["labels"],output["scores"]):
-                draw.rectangle([(box[0], box[1]), (box[2], box[3])], outline="red", width=1)
-                draw.text((box[0], box[1]), cats[int(label)]["name"], fill='white')
-            img.save(output_dir + "/" + target["file_name"])

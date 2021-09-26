@@ -70,11 +70,11 @@
         "yolov5s_bdd100k": "yolov5s_bdd100k_2"
       },
       "locked": {
-        "lastModified": 1632482738,
-        "narHash": "sha256-EZgnT3uA4zLUHlWKMlTsWhtBsKoJ2WScr0AA9vNn0W8=",
+        "lastModified": 1632676578,
+        "narHash": "sha256-qjCwsvfl+pa8RQUz0ufloUjeS73JSCbPp8ayr+avNy4=",
         "owner": "hasktorch",
         "repo": "hasktorch-datasets",
-        "rev": "01ae9a006953a53ecd12b00ebae3e35053faa96d",
+        "rev": "a85e556f5f99d0f43d011ba7a6d7bb1636e1ff7e",
         "type": "github"
       },
       "original": {
