@@ -38,6 +38,15 @@ import utils
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
+import random
+import numpy as np
+
+torch.manual_seed(0)
+random.seed(0)
+np.random.seed(0)
+#torch.use_deterministic_algorithms(True)
+
+
 def get_dataset(name, image_set, transform, data_path):
     paths = {
         "bdd100k": (data_path, get_coco, 13),
@@ -133,6 +142,8 @@ def main(args):
 
     dataset, num_classes = get_dataset(args.dataset, "train", get_transform(True, args.data_augmentation),
                                        args.data_path)
+    print("num_classes")
+    print(num_classes)
     dataset_test, _ = get_dataset(args.dataset, "val", get_transform(False, args.data_augmentation), args.data_path)
 
     print("Creating data loaders")

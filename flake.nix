@@ -51,6 +51,7 @@
         };
         packages = {
           dataset = bdd100k;
+          dataset-mini = bdd100k-mini;
           train = fasterrcnn.train {};
           test = fasterrcnn.test {};
           detect = fasterrcnn.detect {};

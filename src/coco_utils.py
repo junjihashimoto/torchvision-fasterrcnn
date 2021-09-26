@@ -68,6 +68,7 @@ class ConvertCocoPolysToMask(object):
         boxes[:, 1::2].clamp_(min=0, max=h)
 
         classes = [obj["category_id"] for obj in anno]
+        classes = [(c-1) for c in classes]
         classes = torch.tensor(classes, dtype=torch.int64)
 
         #segmentations = [obj["segmentation"] for obj in anno]
@@ -180,8 +181,8 @@ def convert_to_coco_api(ds):
             ann = {}
             ann['image_id'] = image_id
             ann['bbox'] = bboxes[i]
-            ann['category_id'] = labels[i]
-            categories.add(labels[i])
+            ann['category_id'] = (labels[i]+1)
+            categories.add(labels[i]+1)
             ann['area'] = areas[i]
             ann['iscrowd'] = iscrowd[i]
             ann['id'] = ann_id

@@ -5,6 +5,11 @@
 }:
 let
   lib = pkgs.lib;
+  resnet50 = builtins.fetchurl {
+    url = "https://download.pytorch.org/models/resnet50-0676ba61.pth";
+    sha256 = "12pv4bkq7rn9yy9njjrq9mi9gqp5hac8bzfgfcbvwnvrnrhvlxh6";
+  };
+  
   patched-pycocotools = pkgs.python39Packages.pycocotools.overrideAttrs (old: rec{
     patches = [./patches/pycocotools.patch];
   });
@@ -113,6 +118,10 @@ let
       export PYTHONPATH="$PIP_PREFIX/${myPython.sitePackages}:$PYTHONPATH"
       export PATH="$PIP_PREFIX/bin:$PATH"
       unset SOURCE_DATE_EPOCH
+      pwd
+      mkdir -p ../torch/hub/checkpoints
+      ln -s ${resnet50} ../torch/hub/checkpoints/resnet50-0676ba61.pth
+      ls -l ../torch/hub/checkpoints
       mkdir output
       ln -s ${datasets.out} bdd100k
       python ${script} \
@@ -262,7 +271,7 @@ rec {
       output = "output";
     };
     pretrained = pretrainedModel;
-    datasets = bdd100k;
+    datasets = bdd100k-mini;
   } // args);
   detect = args@{...} : detectDerivation ({
     pname = "torchvision-fasterrcnn-detect";

@@ -38,6 +38,13 @@ import utils
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
+import torch.hub
+
+def download_url_to_file(url, dst, hash_prefix=None, progress=True):
+    print((url, dst, hash_prefix, progress))
+    
+torch.hub.download_url_to_file=download_url_to_file
+
 def get_dataset(name, image_set, transform, data_path):
     paths = {
         "bdd100k": (data_path, get_coco, 13),
