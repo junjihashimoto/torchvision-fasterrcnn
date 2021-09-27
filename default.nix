@@ -274,7 +274,7 @@ rec {
       batch-size = 12;
       # https://arxiv.org/abs/1711.00489
       lr = 0.02 * (batch-size / 2.0);
-      momentum = 0.9 * (1.0-(1.0/(batch-size / 2.0)));
+      # momentum = 0.9 * (1.0-(1.0/(batch-size / 2.0)));
     };
   } // args);
   test = args@{...} : testDerivation ({
