@@ -68,7 +68,6 @@ class ConvertCocoPolysToMask(object):
         boxes[:, 1::2].clamp_(min=0, max=h)
 
         classes = [obj["category_id"] for obj in anno]
-        classes = [(c-1) for c in classes]
         classes = torch.tensor(classes, dtype=torch.int64)
 
         #segmentations = [obj["segmentation"] for obj in anno]
