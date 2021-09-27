@@ -257,6 +257,10 @@ let
       maintainers = with maintainers; [ junjihashimoto ];
     };
   };
+  iota = n: start:
+    if n == 0
+    then []
+    else [start] ++ iota (n - 1) (start+1);
   
 in
 rec {
@@ -277,6 +281,27 @@ rec {
       # momentum = 0.9 * (1.0-(1.0/(batch-size / 2.0)));
     };
   } // args);
+  trainN =
+    let numGpu = 3;
+        scriptArgs' = epoch: rec {
+          output-dir = "output";
+          epochs = epoch;
+          world-size = numGpu;
+          batch-size = 12;
+          # https://arxiv.org/abs/1711.00489
+          lr = 0.02 * (batch-size / 2.0);
+          # momentum = 0.9 * (1.0-(1.0/(batch-size / 2.0)));
+        };
+    in builtins.foldl'
+      (prev: epoch:
+        train {
+          pretrained = prev;
+          scriptArgs = scriptArgs' epoch;
+        }
+      ) (train {
+        scriptArgs = scriptArgs' 1;
+      }
+      ) (iota 26 2);
   test = args@{...} : testDerivation ({
     pname = "torchvision-fasterrcnn-test";
     description = "The test of fasterrcnn";

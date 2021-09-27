@@ -53,6 +53,7 @@
           dataset = bdd100k;
           dataset-mini = bdd100k-mini;
           train = fasterrcnn.train {};
+          trainN = fasterrcnn.trainN;
           test = fasterrcnn.test {};
           detect = fasterrcnn.detect {};
           detect-sample = fasterrcnn.detect {
