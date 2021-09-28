@@ -294,7 +294,7 @@ def main(args):
         (ret,_) = evaluate(model, data_loader_test, device=device)
         mAP = ret[0][1]
         if args.output_dir:
-            if max_mAP > mAP:
+            if mAP > max_mAP:
                 max_mAP = mAP
                 utils.save_on_master(
                     checkpoint,
