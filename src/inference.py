@@ -134,6 +134,17 @@ def inference(model,
                 draw.text((box[0], box[1]), cats[int(label)]["name"], fill='white')
             img.save(output_dir + "/" + target["file_name"])
 
+            with open(output_dir.replace('images','labels') + "/" + target["file_name"].replace('jpg','txt').replace('png','txt'), mode='w') as f:
+                for box, label, score  in zip(output["boxes"],output["labels"],output["scores"]):
+                    print(f"%s, %s, score = %.3f" % (target["file_name"], cats[int(label)]["name"], score))
+                    f.write(f"%d %f %f %f %f\n"
+                            % ( int(label) - 1 
+                            , ((box[0]+box[2])/2.0) / float(img.width)
+                            , ((box[1]+box[3])/2.0) / float(img.height)
+                            , ((box[2]-box[1]))     / float(img.width)
+                            , ((box[3]-box[1]))     / float(img.height)
+                               ))
+            
 def main(args):
     if args.output_dir:
         utils.mkdir(args.output_dir)

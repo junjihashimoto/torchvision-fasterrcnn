@@ -317,7 +317,7 @@ rec {
     description = "The inference of fasterrcnn";
     script = "inference.py";
     scriptArgs = {
-      device = "cuda";
+      device = "cpu";
       output-dir = "output";
     };
     pretrained = pretrainedModel;
