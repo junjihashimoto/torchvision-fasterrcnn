@@ -237,8 +237,8 @@ let
     pname = "pretrained-fasterrcnn";
     version = "1";
     src = builtins.fetchurl {
-        "sha256"= "1gm6xnfacpirriykhjz1ba062lqbwr9v8y1608vr1j7bpm4kb3y6";
-        "url"= "https://github.com/hasktorch/hasktorch-datasets/releases/download/bdd100k/torchvision_fasterrcnn_model.pth";
+        "sha256"= "1xhx9xiw5gnlnnz6kgjrarwvp5b1qvpni0sx8m99v5g1vjnibfn3";
+        "url"= "https://github.com/hasktorch/hasktorch-datasets/releases/download/bdd100k/torchvision_fasterrcnn_model_e83ca1b.pth";
     };
     unpackCmd = ''
       mkdir -p $out/output
