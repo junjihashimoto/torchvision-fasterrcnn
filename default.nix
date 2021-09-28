@@ -310,7 +310,7 @@ rec {
       output = "output";
     };
     pretrained = pretrainedModel;
-    datasets = bdd100k-mini;
+    datasets = bdd100k;
   } // args);
   detect = args@{...} : detectDerivation ({
     pname = "torchvision-fasterrcnn-detect";

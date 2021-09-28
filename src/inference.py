@@ -111,6 +111,7 @@ def inference(model,
     coco = get_coco_api_from_dataset(data_loader.dataset)
     catIDs = coco.getCatIds()
     cats = coco.loadCats(catIDs)
+    cats = dict(zip([i["id"] for i in cats],cats))
     model.eval()
 
     for images, targets in data_loader:
