@@ -51,7 +51,6 @@ def get_args_parser(add_help=True):
     parser = argparse.ArgumentParser(description='PyTorch Detection Training', add_help=add_help)
 
     parser.add_argument('--data-path', default='bdd100k', help='dataset')
-    parser.add_argument('--data-dir', default='images/valids', help='dataset')
     parser.add_argument('--dataset', default='bdd100k', help='dataset')
     parser.add_argument('--model', default='fasterrcnn_resnet50_fpn', help='model')
     parser.add_argument('--device', default='cuda', help='device')
@@ -102,48 +101,48 @@ def get_args_parser(add_help=True):
 
 @torch.no_grad()
 def inference(model,
-              data_loader,
+              data_loaders,
               device,
               dataset_name="few-bdd100k",
-              dataset_dir="images/valids",
               output_dir="output"
               ):
-    coco = get_coco_api_from_dataset(data_loader.dataset)
+    coco = get_coco_api_from_dataset(data_loaders[0][0].dataset)
     catIDs = coco.getCatIds()
     cats = coco.loadCats(catIDs)
     cats = dict(zip([i["id"] for i in cats],cats))
     model.eval()
 
-    for images, targets in data_loader:
-        images = list(img.to(device) for img in images)
-
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-        model_time = time.time()
-
-        outputs = model(images)
-
-        for (output,image,target) in zip(outputs,images,targets):
-            img = Image.open(dataset_name + "/" + dataset_dir + "/" + target["file_name"]).convert('RGB')
-            draw = ImageDraw.Draw(img)
-            #fnt = ImageFont.truetype("arial.ttf", 10)#40
-            #text_w, text_h = fnt.getsize(label)
-            for box, label, score  in zip(output["boxes"],output["labels"],output["scores"]):
-                print(f"%s, %s, score = %.3f" % (target["file_name"], cats[int(label)]["name"], score))
-                draw.rectangle([(box[0], box[1]), (box[2], box[3])], outline="red", width=1)
-                draw.text((box[0], box[1]), cats[int(label)]["name"], fill='white')
-            img.save(output_dir + "/" + target["file_name"])
-
-            with open(output_dir.replace('images','labels') + "/" + target["file_name"].replace('jpg','txt').replace('png','txt'), mode='w') as f:
+    for (data_loader,dataset_dir) in data_loaders:
+        for images, targets in data_loader:
+            images = list(img.to(device) for img in images)
+    
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+            model_time = time.time()
+    
+            outputs = model(images)
+    
+            for (output,image,target) in zip(outputs,images,targets):
+                img = Image.open(dataset_name + "/" + dataset_dir + "/" + target["file_name"]).convert('RGB')
+                draw = ImageDraw.Draw(img)
+                #fnt = ImageFont.truetype("arial.ttf", 10)#40
+                #text_w, text_h = fnt.getsize(label)
                 for box, label, score  in zip(output["boxes"],output["labels"],output["scores"]):
                     print(f"%s, %s, score = %.3f" % (target["file_name"], cats[int(label)]["name"], score))
-                    f.write(f"%d %f %f %f %f\n"
-                            % ( int(label) - 1 
-                            , ((box[0]+box[2])/2.0) / float(img.width)
-                            , ((box[1]+box[3])/2.0) / float(img.height)
-                            , ((box[2]-box[1]))     / float(img.width)
-                            , ((box[3]-box[1]))     / float(img.height)
-                               ))
+                    draw.rectangle([(box[0], box[1]), (box[2], box[3])], outline="red", width=1)
+                    draw.text((box[0], box[1]), cats[int(label)]["name"], fill='white')
+                img.save(output_dir + "/" + dataset_dir + "/" + target["file_name"])
+    
+                with open(output_dir + "/" + dataset_dir.replace('images','labels') + "/" + target["file_name"].replace('jpg','txt').replace('png','txt'), mode='w') as f:
+                    for box, label, score  in zip(output["boxes"],output["labels"],output["scores"]):
+                        print(f"%s, %s, score = %.3f" % (target["file_name"], cats[int(label)]["name"], score))
+                        f.write(f"%d %f %f %f %f\n"
+                                % ( int(label) - 1 
+                                , ((box[0]+box[2])/2.0) / float(img.width)
+                                , ((box[1]+box[3])/2.0) / float(img.height)
+                                , ((box[2]-box[1]))     / float(img.width)
+                                , ((box[3]-box[1]))     / float(img.height)
+                                   ))
             
 def main(args):
     if args.output_dir:
@@ -157,12 +156,18 @@ def main(args):
     # Data loading code
     print("Loading data")
 
-    dataset_test, num_classes = get_dataset(args.dataset, "val", get_transform(False, args.data_augmentation), args.data_path)
+    dataset, num_classes = get_dataset(args.dataset, "train", get_transform(False, args.data_augmentation), args.data_path)
+    dataset_test, _ =      get_dataset(args.dataset, "val", get_transform(False, args.data_augmentation), args.data_path)
     print(num_classes)
 
     print("Creating data loaders")
+    sampler = torch.utils.data.SequentialSampler(dataset)
     test_sampler = torch.utils.data.SequentialSampler(dataset_test)
 
+    data_loader = torch.utils.data.DataLoader(
+        dataset, batch_size=1,
+        sampler=sampler, num_workers=args.workers,
+        collate_fn=utils.collate_fn)
     data_loader_test = torch.utils.data.DataLoader(
         dataset_test, batch_size=1,
         sampler=test_sampler, num_workers=args.workers,
@@ -185,10 +190,9 @@ def main(args):
         model.load_state_dict(checkpoint['model'])
     
     inference(model,
-              data_loader_test,
+              [(data_loader,"images/trains"),(data_loader_test,"images/valids")],
               device=device,
               dataset_name= args.data_path,
-              dataset_dir= args.data_dir,
               output_dir= args.output_dir
               )
 

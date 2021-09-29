@@ -189,7 +189,7 @@ let
       mkdir -p ../torch/hub/checkpoints
       ln -s ${resnet50} ../torch/hub/checkpoints/resnet50-0676ba61.pth
       ls -l ../torch/hub/checkpoints
-      mkdir output
+      mkdir -p output/{images,labels}/{trains,valids}
       ln -s ${datasets.out} bdd100k
       python ${script} \
         ${pretrained_str} \
