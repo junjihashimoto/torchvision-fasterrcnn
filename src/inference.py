@@ -140,7 +140,7 @@ def inference(model,
                                 % ( int(label) - 1 
                                 , ((box[0]+box[2])/2.0) / float(img.width)
                                 , ((box[1]+box[3])/2.0) / float(img.height)
-                                , ((box[2]-box[1]))     / float(img.width)
+                                , ((box[2]-box[0]))     / float(img.width)
                                 , ((box[3]-box[1]))     / float(img.height)
                                    ))
             
