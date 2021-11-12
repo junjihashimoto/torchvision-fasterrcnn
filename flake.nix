@@ -38,10 +38,21 @@
         bdd100k-mini = hasktorch-datasets.packages.${system}.datasets-bdd100k-mini-coco;
         sample-images = hasktorch-datasets.packages.${system}.datasets-sample-images;
         img2coco = hasktorch-datasets.lib.${system}.datasets.img2coco;
+        hasktorch-datasets-utils = hasktorch-datasets.lib.${system}.utils;
+        src2drv = hasktorch-datasets.lib.${system}.datasets.src2drv;
         fasterrcnn = pkgs.callPackage ./default.nix {
           inherit bdd100k;
           inherit bdd100k-mini;
-          hasktorch-datasets-utils = hasktorch-datasets.lib.${system}.utils;
+          inherit hasktorch-datasets-utils;
+        };
+        sample-image = src2drv {
+          srcs = [
+            (builtins.fetchurl {
+              name = "b1d0091f-f2c2d2ae.zip";
+              url = "https://github.com/junjihashimoto/torchvision-fasterrcnn/releases/download/dataset/b1d0091f-f2c2d2ae.zip";
+              sha256 = "0mz0dv1vvqffyk863mzxnvpsiklmh4ixhxr1yfl5017fm8miln2f";
+            })
+          ];
         };
       in {
         lib = {
@@ -59,6 +70,11 @@
           detect-sample = fasterrcnn.detect {
             datasets = img2coco  {
               dataset = sample-images;
+            };
+          };
+          classification = fasterrcnn.classification {
+            datasets = img2coco  {
+              dataset = sample-image;
             };
           };
           inherit bdd100k;

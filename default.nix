@@ -152,7 +152,7 @@ let
           "\""
         ) names;
     in builtins.concatStringsSep " " args;
-  detectDerivation = { pname
+  clsDerivation = { pname
          , description
          , script
          , scriptArgs
@@ -261,7 +261,63 @@ let
     if n == 0
     then []
     else [start] ++ iota (n - 1) (start+1);
-  
+  detectDerivation = { pname
+         , description
+         , script
+         , scriptArgs
+         , pretrained
+         , datasets
+         } :
+           let pretrained_str = " --resume ${pretrained.out}/output/model.pth";
+           in  pkgs.stdenv.mkDerivation {
+    pname = pname;
+    version = "1";
+    nativeBuildInputs = [
+      myPython
+      pkgs.curl
+      pretrained
+      datasets
+    ];
+    buildInputs =  [];
+    src = hasktorch-datasets-utils.excludeFiles 
+      [ "^train\.py$"
+        "^test\.py$"
+      ]
+      ./src;
+    buildPhase = ''
+      export CURL_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
+      #export REQUESTS_CA_BUNDLE=""
+      export TRANSFORMERS_CACHE=$TMPDIR
+      export XDG_CACHE_HOME=$TMPDIR
+
+      export PIP_PREFIX=$(pwd)/_build/pip_packages
+      export PYTHONPATH="$PIP_PREFIX/${myPython.sitePackages}:$PYTHONPATH"
+      export PATH="$PIP_PREFIX/bin:$PATH"
+      unset SOURCE_DATE_EPOCH
+      pwd
+      mkdir -p ../torch/hub/checkpoints
+      ln -s ${resnet50} ../torch/hub/checkpoints/resnet50-0676ba61.pth
+      ls -l ../torch/hub/checkpoints
+      mkdir -p output/{images,labels}/{trains,valids}
+      ln -s ${datasets.out} bdd100k
+      python ${script} \
+        ${pretrained_str} \
+        ${expandStriptArgs scriptArgs}
+    '';
+    installPhase = ''
+      mkdir -p $out
+      cp -r ${scriptArgs.output-dir} $out
+    '';
+    meta = with lib; {
+      inherit description;
+      longDescription = ''
+      '';
+      homepage = "";
+      license = licenses.bsd3;
+      platforms = platforms.all;
+      maintainers = with maintainers; [ junjihashimoto ];
+    };
+  };
 in
 rec {
   train = args@{...} : mkDerivation (rec {
@@ -316,6 +372,17 @@ rec {
     pname = "torchvision-fasterrcnn-detect";
     description = "The inference of fasterrcnn";
     script = "inference.py";
+    scriptArgs = {
+      device = "cpu";
+      output-dir = "output";
+    };
+    pretrained = pretrainedModel;
+    datasets = bdd100k-mini;
+  } // args);
+  classification = args@{...} : clsDerivation ({
+    pname = "torchvision-fasterrcnn-cls";
+    description = "The classification of fasterrcnn";
+    script = "classification.py";
     scriptArgs = {
       device = "cpu";
       output-dir = "output";
