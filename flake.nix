@@ -13,16 +13,16 @@
   };
   
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs?rev=8b0f315b7691adcee291b2ff139a1beed7c50d94";
+    nixpkgs.url = "github:NixOS/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
     hasktorch-datasets.url = "github:hasktorch/hasktorch-datasets";
-    poetry2nix = {
-      url = "github:nix-community/poetry2nix?rev=046bddd753f99ce73ab2fbb91a2d5f620eadae39";
-      flake = false;
-    };
+    # poetry2nix = {
+    #   url = "github:nix-community/poetry2nix?rev=046bddd753f99ce73ab2fbb91a2d5f620eadae39";
+    #   flake = false;
+    # };
   };
 
-  outputs = { self, nixpkgs, flake-utils, hasktorch-datasets, poetry2nix }:
+  outputs = { self, nixpkgs, flake-utils, hasktorch-datasets }: #, poetry2nix
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
@@ -40,10 +40,11 @@
         img2coco = hasktorch-datasets.lib.${system}.datasets.img2coco;
         hasktorch-datasets-utils = hasktorch-datasets.lib.${system}.utils;
         src2drv = hasktorch-datasets.lib.${system}.datasets.src2drv;
-        fasterrcnn = pkgs.callPackage ./default.nix {
+        fasterrcnn = pkgs.callPackage ./nix/default.nix {
           inherit bdd100k;
           inherit bdd100k-mini;
           inherit hasktorch-datasets-utils;
+          inherit src2drv;
         };
         sample-image = src2drv {
           srcs = [
@@ -64,6 +65,7 @@
           dataset = bdd100k;
           dataset-mini = bdd100k-mini;
           train = fasterrcnn.train {};
+          finetuning = fasterrcnn.finetuning {};
           trainN = fasterrcnn.trainN;
           test = fasterrcnn.test {};
           detect = fasterrcnn.detect {};
@@ -82,9 +84,7 @@
 
         # defaultPackage = self.packages.${system}.${packageName};
 
-        devShell = pkgs.mkShell {
-          buildInputs = with pkgs; [ poetry ];
-          inputsFrom = builtins.attrValues self.packages.${system};
-        };
+        devShell = fasterrcnn.myShell self system;
+        
       });
 }

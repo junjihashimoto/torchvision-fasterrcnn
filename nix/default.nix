@@ -2,6 +2,7 @@
 , bdd100k
 , bdd100k-mini
 , hasktorch-datasets-utils
+, src2drv
 }:
 let
   lib = pkgs.lib;
@@ -11,7 +12,7 @@ let
   };
   
   patched-pycocotools = pkgs.python39Packages.pycocotools.overrideAttrs (old: rec{
-    patches = [./patches/pycocotools.patch];
+    patches = [../patches/pycocotools.patch];
   });
   myPython = pkgs.python39.withPackages (ps: with ps;
     [ opencv4
@@ -47,7 +48,7 @@ let
       [ "^test\.py$"
         "^inference\.py$"
       ]
-      ./src;
+      ../src;
     buildPhase = ''
       export CURL_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
       #export REQUESTS_CA_BUNDLE=""
@@ -104,7 +105,7 @@ let
       [ "^train\.py$"
         "^inference\.py$"
       ]
-      ./src;
+      ../src;
     buildPhase = ''
       export CURL_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
       #export REQUESTS_CA_BUNDLE=""
@@ -174,7 +175,7 @@ let
       [ "^train\.py$"
         "^test\.py$"
       ]
-      ./src;
+      ../src;
     buildPhase = ''
       export CURL_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
       #export REQUESTS_CA_BUNDLE=""
@@ -283,7 +284,7 @@ let
       [ "^train\.py$"
         "^test\.py$"
       ]
-      ./src;
+      ../src;
     buildPhase = ''
       export CURL_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
       #export REQUESTS_CA_BUNDLE=""
@@ -330,6 +331,25 @@ rec {
     scriptArgs = rec {
       output-dir = "output";
       epochs = 26;
+      world-size = numGpu;
+      batch-size = 12;
+      # https://arxiv.org/abs/1711.00489
+      lr = 0.02 * (batch-size / 2.0);
+      # momentum = 0.9 * (1.0-(1.0/(batch-size / 2.0)));
+    };
+  } // args);
+  finetuning = args@{...} : mkDerivation (rec {
+    pname = "torchvision-fasterrcnn-finetuning";
+    description = "Finetuning fasterrcnn";
+    pretrained = pretrainedModel;
+    numGpu = 1;
+    datasets = src2drv { srcs = [
+      /home/hashimoto/git/cpod/git/cpod/dataset-to-fix-missclassification-of-truck
+    ]; };
+    script = "train.py";
+    scriptArgs = rec {
+      output-dir = "output";
+      epochs = 3;
       world-size = numGpu;
       batch-size = 12;
       # https://arxiv.org/abs/1711.00489
@@ -390,4 +410,24 @@ rec {
     pretrained = pretrainedModel;
     datasets = bdd100k-mini;
   } // args);
+  myShell = self: system: pkgs.mkShell {
+    buildInputs = with pkgs; [ myPython ];
+    shellHook = ''
+      echo hello
+      export CURL_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
+      #export REQUESTS_CA_BUNDLE=""
+      export TRANSFORMERS_CACHE=$TMPDIR
+      export XDG_CACHE_HOME=$TMPDIR
+      
+      export PIP_PREFIX=$(pwd)/_build/pip_packages
+      export PYTHONPATH="$PIP_PREFIX/${myPython.sitePackages}:$PYTHONPATH"
+      export PATH="$PIP_PREFIX/bin:$PATH"
+      unset SOURCE_DATE_EPOCH
+      mkdir -p ../torch/hub/checkpoints
+      ln -s ${resnet50} ../torch/hub/checkpoints/resnet50-0676ba61.pth
+      ls -l ../torch/hub/checkpoints
+      mkdir output
+    '';
+    inputsFrom = builtins.attrValues self.packages.${system};
+  };
 }
