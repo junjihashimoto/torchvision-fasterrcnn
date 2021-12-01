@@ -13,7 +13,7 @@
   };
   
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs";
+    nixpkgs.url = "github:NixOS/nixpkgs?rev=8b0f315b7691adcee291b2ff139a1beed7c50d94";
     flake-utils.url = "github:numtide/flake-utils";
     hasktorch-datasets.url = "github:hasktorch/hasktorch-datasets";
     # poetry2nix = {
@@ -60,6 +60,7 @@
           train = args@{...}: fasterrcnn.train args;
           test = args@{...}: fasterrcnn.test args;
           detect = args@{...}: fasterrcnn.detect args;
+          finetuning = args@{...}: fasterrcnn.finetuning args;
         };
         packages = {
           dataset = bdd100k;

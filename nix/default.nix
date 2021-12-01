@@ -30,11 +30,12 @@ let
                  , pretrained ? ""
                  , numGpu
                  , datasets
+                 , checkpoint_filename ? "checkpoint.pth"
                  } :
                    let pretrained_str =
                          if pretrained == ""
                          then ""
-                         else " --resume ${pretrained.out}/output/checkpoint.pth";
+                         else " --resume ${pretrained.out}/output/${checkpoint_filename}";
                    in  pkgs.stdenv.mkDerivation {
     pname = pname;
     version = "1";
@@ -268,8 +269,9 @@ let
          , scriptArgs
          , pretrained
          , datasets
+         , checkpoint_filename ? "model.pth"
          } :
-           let pretrained_str = " --resume ${pretrained.out}/output/model.pth";
+           let pretrained_str = " --resume ${pretrained.out}/output/${checkpoint_filename}";
            in  pkgs.stdenv.mkDerivation {
     pname = pname;
     version = "1";
@@ -342,14 +344,16 @@ rec {
     pname = "torchvision-fasterrcnn-finetuning";
     description = "Finetuning fasterrcnn";
     pretrained = pretrainedModel;
+    checkpoint_filename = "model.pth";
     numGpu = 1;
-    datasets = src2drv { srcs = [
-      /home/hashimoto/git/cpod/git/cpod/dataset-to-fix-missclassification-of-truck
-    ]; };
+    datasets = args.dataset;
+    # datasets = src2drv { srcs = [
+    #   /home/hashimoto/git/cpod/git/cpod/dataset-to-fix-missclassification-of-truck
+    # ]; };
     script = "train.py";
     scriptArgs = rec {
       output-dir = "output";
-      epochs = 3;
+      epochs = 28;
       world-size = numGpu;
       batch-size = 12;
       # https://arxiv.org/abs/1711.00489
