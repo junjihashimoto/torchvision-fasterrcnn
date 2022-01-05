@@ -3,17 +3,13 @@
 
   nixConfig = {
     substituters = [
-      # https://iohk.cachix.org
-      https://hydra.iohk.io
-    ];
-    trusted-public-keys = [
-      hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=
+      https://cache.nixos.org
     ];
     bash-prompt = "\[nix-develop\]$ ";
   };
   
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs?rev=8b0f315b7691adcee291b2ff139a1beed7c50d94";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-21.11";
     flake-utils.url = "github:numtide/flake-utils";
     hasktorch-datasets.url = "github:hasktorch/hasktorch-datasets";
     # poetry2nix = {
