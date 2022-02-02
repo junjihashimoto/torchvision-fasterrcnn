@@ -25,6 +25,8 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 import torch.hub
 
+import numpy as np
+
 def download_url_to_file(url, dst, hash_prefix=None, progress=True):
     print((url, dst, hash_prefix, progress))
     
@@ -123,6 +125,7 @@ def inference(model,
             outputs = model(images)
     
             for (output,image,target) in zip(outputs,images,targets):
+                print(target["file_name"])
                 img = Image.open(dataset_name + "/" + dataset_dir + "/" + target["file_name"]).convert('RGB')
                 draw = ImageDraw.Draw(img)
                 #fnt = ImageFont.truetype("arial.ttf", 10)#40
@@ -186,17 +189,56 @@ def main(args):
     model.to(device)
 #   print(model)
 
+    def transform_hook(module,input,output):
+        print(output[0].tensors.shape)
+        print(input[0][0].shape)
+        if input[0][0].dim() == 3:
+            output[0].tensors = torch.unsqueeze(input[0][0],dim=0)
+            output[0].image_sizes = [tuple(input[0][0].shape[1:])]
+        else:
+            output[0].tensors = input[0][0]
+            output[0].image_sizes = [tuple(input[0][0].shape[2:])]
+            
+        return output
     def hook(module,input,output):
         for (i,(height,width)) in enumerate(input[0].image_sizes):
-            output[0][i]=torch.tensor([[0,0,width,height]],dtype=torch.float32)
-            print(output[0][i])
+            mergin = 0.2
+            w = (width/(1 + mergin*2))
+            h = (height/(1 + mergin*2))
+            output[0][i]=torch.tensor([[w*mergin,h*mergin,w*mergin+w,h*mergin+h]],dtype=torch.float32).to(device)
+            #output[0][i]=torch.tensor([[0,0,width,height]],dtype=torch.float32).to(device)
         return output
+    def box_roi_head_hook(module,input,output):
+        output.cpu().numpy().tofile("feature.bin")
+        print(output.shape)
+        return output
+    def cls_hook(module,input,output):
+        print(input)
+        clsb = torch.from_numpy(np.fromfile('roi_heads:box_predictor:cls_score:bias_in_1024_out_14.bin',dtype=np.float32))
+        clsw = torch.from_numpy(np.fromfile('roi_heads:box_predictor:cls_score:weight_in_1024_out_14.bin',dtype=np.float32)).reshape(14,1024)
+        #clsb = model.roi_heads.box_predictor.cls_score.bias.cpu()
+        #clsw = model.roi_heads.box_predictor.cls_score.weight.cpu()
+        print("torch.matmul(input[0].cpu(),clsw)+clsb")
+        print(torch.matmul(clsw,input[0].cpu().reshape(1024))+clsb)
+        print(output)
+        return output
+        
+    model.transform.register_forward_hook(transform_hook)
     model.rpn.register_forward_hook(hook)
+    model.roi_heads.box_roi_pool.register_forward_hook(box_roi_head_hook)
+    model.roi_heads.box_predictor.cls_score.register_forward_hook(cls_hook)
         
     if args.resume:
         checkpoint = torch.load(args.resume, map_location='cpu')
         model.load_state_dict(checkpoint['model'])
-    
+
+    model.roi_heads.box_head.fc6.weight.cpu().detach().numpy().tofile(args.output_dir + "/" + "roi_heads:box_head:fc6:weight_in_12544_out_1024.bin")
+    model.roi_heads.box_head.fc6.bias.cpu().detach().numpy().tofile(args.output_dir + "/" + "roi_heads:box_head:fc6:bias_in_12544_out_1024.bin")
+    model.roi_heads.box_head.fc7.weight.cpu().detach().numpy().tofile(args.output_dir + "/" + "roi_heads:box_head:fc7:weight_in_1024_out_1024.bin")
+    model.roi_heads.box_head.fc7.bias.cpu().detach().numpy().tofile(args.output_dir + "/" + "roi_heads:box_head:fc7:bias_in_1024_out_1024.bin")
+    model.roi_heads.box_predictor.cls_score.weight.cpu().detach().numpy().tofile(args.output_dir + "/" + "roi_heads:box_predictor:cls_score:weight_in_1024_out_14.bin")
+    model.roi_heads.box_predictor.cls_score.bias.cpu().detach().numpy().tofile(args.output_dir + "/" + "roi_heads:box_predictor:cls_score:bias_in_1024_out_14.bin")
+        
     inference(model,
               [(data_loader,"images/trains"),(data_loader_test,"images/valids")],
               device=device,

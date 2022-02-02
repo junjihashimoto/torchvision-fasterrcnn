@@ -114,7 +114,7 @@ def inference(model,
     for (data_loader,dataset_dir) in data_loaders:
         for (i,dat) in enumerate(data_loader):
             print(dat["image"].shape)
-            images = torch.permute(dat["image"],(0,3,1,2)).float().to(device)
+            images = dat["image"].to(device)
     
             if torch.cuda.is_available():
                 torch.cuda.synchronize()
@@ -128,7 +128,7 @@ def inference(model,
 
             
             print(filename)
-            box_feature_map.numpy().tofile(filename)
+            box_feature_map.cpu().numpy().tofile(filename)
 
             
             
@@ -174,11 +174,15 @@ def main(args):
     model = torchvision.models.detection.__dict__[args.model](num_classes=num_classes, pretrained=args.pretrained,**kwargs)
     model.eval()
     model.to(device)
-    print(model)
+    #print(model)
 
     def hook(module,input,output):
         for (i,(height,width)) in enumerate(input[0].image_sizes):
-            output[0][i]=torch.tensor([[0,0,width,height]],dtype=torch.float32)
+#            output[0][i]=torch.tensor([[0,0,width,height]],dtype=torch.float32).to(device)
+            mergin = 0.2
+            w = (width/(1 + mergin*2))
+            h = (height/(1 + mergin*2))
+            output[0][i]=torch.tensor([[w*mergin,h*mergin,w*mergin+w,h*mergin+h]],dtype=torch.float32).to(device)
             print(output[0][i])
         return output
     def transform_hook(module,input,output):
@@ -219,10 +223,15 @@ def main(args):
         checkpoint = torch.load(args.resume, map_location='cpu')
         model.load_state_dict(checkpoint['model'])
     
+    # model.roi_heads.box_head.fc6.weight.cpu().detach().numpy().tofile(args.output_dir + "/" + "roi_heads:box_head:fc6:weight_in_12544_out_1024.bin")
+    # model.roi_heads.box_head.fc6.bias.cpu().detach().numpy().tofile(args.output_dir + "/" + "roi_heads:box_head:fc6:bias_in_12544_out_1024.bin")
+    # model.roi_heads.box_head.fc7.weight.cpu().detach().numpy().tofile(args.output_dir + "/" + "roi_heads:box_head:fc7:weight_in_1024_out_1024.bin")
+    # model.roi_heads.box_head.fc7.bias.cpu().detach().numpy().tofile(args.output_dir + "/" + "roi_heads:box_head:fc7:bias_in_1024_out_1024.bin")
+    # model.roi_heads.box_predictor.cls_score.weight.cpu().detach().numpy().tofile(args.output_dir + "/" + "roi_heads:box_predictor:cls_score:weight_in_1024_out_14.bin")
+    # model.roi_heads.box_predictor.cls_score.bias.cpu().detach().numpy().tofile(args.output_dir + "/" + "roi_heads:box_predictor:cls_score:bias_in_1024_out_14.bin")
+    
     inference(model,
               [(data_loader,"trains/images"),(data_loader_test,"valids/images")],
-#              [(data_loader_test,"valids/images")],
-#              [(data_loader,"trains/images")],
               device=device,
               dataset_name= args.data_path,
               output_dir= args.output_dir
