@@ -11,6 +11,10 @@ import pandas as pd
 import transforms as T
 import cv2 as io
 
+from torchvision.transforms import functional as F
+#from torchvision.transforms import transforms as T
+
+
 class Bdd100kObjectsDataset(Dataset):
     """Bdd100k Objects dataset."""
 
@@ -35,7 +39,9 @@ class Bdd100kObjectsDataset(Dataset):
         filename = self.classids.iloc[idx, 0]
         img_name = os.path.join(self.root_dir,
                                 filename)
-        image = torch.from_numpy(io.imread(img_name))
+        image = Image.open(img_name)
+        image = F.pil_to_tensor(image)
+        image = F.convert_image_dtype(image)
         classid = self.classids.iloc[idx, 1]
         sample = {
             'image': image,
