@@ -430,7 +430,7 @@ rec {
     dataset-dir = "bdd100k-objects";
   } // args);
   myShell = self: system: pkgs.mkShell {
-    packages = with pkgs; [ myPython ];
+    packages = with pkgs; [ myPython pretrainedModel ];
     shellHook = ''
       export CURL_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
       #export REQUESTS_CA_BUNDLE=""
@@ -445,6 +445,7 @@ rec {
       mkdir -p $TMP/torch/hub/checkpoints
       ln -s ${resnet50} $TMP/torch/hub/checkpoints/resnet50-0676ba61.pth
       ls -l $TMP/torch/hub/checkpoints
+      ln -s ${pretrainedModel.out}/output/*.pth .
       mkdir -p $TMP/output
     '';
     inputsFrom = builtins.attrValues self.packages.${system};
