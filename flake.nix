@@ -57,6 +57,7 @@
           test = args@{...}: fasterrcnn.test args;
           detect = args@{...}: fasterrcnn.detect args;
           finetuning = args@{...}: fasterrcnn.finetuning args;
+          gen-feature-map-with-partial-image = args@{...}: fasterrcnn.gen-feature-map-with-partial-image args;
           gen-feature-map = args@{...}: fasterrcnn.gen-feature-map args;
         };
         packages = {
@@ -77,6 +78,7 @@
               dataset = sample-image;
             };
           };
+          gen-feature-map-with-partial-image = fasterrcnn.gen-feature-map-with-partial-image {};
           gen-feature-map = fasterrcnn.gen-feature-map {};
           inherit bdd100k;
         };

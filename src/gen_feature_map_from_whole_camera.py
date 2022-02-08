@@ -146,7 +146,7 @@ def inference(model,
                     for box, label, score in zip(output["boxes"],output["labels"],output["scores"]):
                         draw.rectangle([(box[0], box[1]), (box[2], box[3])], outline="red", width=1)
                         draw.text((box[0], box[1]), cats[int(label)]["name"], fill='white')
-                    img.save(out_dir + "/" + target["file_name"])
+                    img.save(out_dir + "/" + target["file_name"] + "_" + str(i) +".jpg")
 
                     with open(out_dir + "/../labels.csv", 'a') as f:
                         print(outputfile+","+str(int(target["labels"][i])-1), file=f)

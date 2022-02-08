@@ -162,8 +162,9 @@ let
          , pretrained
          , datasets
          , dataset-dir
+         , checkpoint_filename ? "model.pth"
          } :
-           let pretrained_str = " --resume ${pretrained.out}/output/model.pth";
+           let pretrained_str = " --resume ${pretrained.out}/output/${checkpoint_filename}";
            in  pkgs.stdenv.mkDerivation {
     pname = pname;
     version = "1";
@@ -194,6 +195,8 @@ let
       ln -s ${resnet50} ../torch/hub/checkpoints/resnet50-0676ba61.pth
       ls -l ../torch/hub/checkpoints
       mkdir -p output/{trains,valids}/images
+      mkdir -p output/weights
+      cp ${datasets.out}/bdd100k.names output/
       ln -s ${datasets.out} ${dataset-dir}
       python ${script} \
         ${pretrained_str} \
@@ -417,7 +420,7 @@ rec {
     datasets = bdd100k-mini;
     dataset-dir = "bdd100k";
   } // args);
-  gen-feature-map = args@{...} : clsDerivation ({
+  gen-feature-map-with-partial-image = args@{...} : clsDerivation ({
     pname = "torchvision-fasterrcnn-feature-map";
     description = "The feature-map of fasterrcnn";
     script = "gen_feature_map.py";
@@ -428,6 +431,19 @@ rec {
     pretrained = pretrainedModel;
     datasets = bdd100k-mini;
     dataset-dir = "bdd100k-objects";
+  } // args);
+  gen-feature-map = args@{...} : clsDerivation ({
+    pname = "torchvision-fasterrcnn-feature-map";
+    description = "The feature-map of fasterrcnn";
+    script = "gen_feature_map_from_whole_camera.py";
+    scriptArgs = {
+#      device = "cpu";
+      output-dir = "output";
+    };
+    pretrained = pretrainedModel;
+    datasets = bdd100k-mini;
+    dataset-dir = "bdd100k";
+    checkpoint_filename = "best.pth";
   } // args);
   myShell = self: system: pkgs.mkShell {
     packages = with pkgs; [ myPython pretrainedModel ];
