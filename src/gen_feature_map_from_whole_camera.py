@@ -115,12 +115,20 @@ def inference(model,
     model.eval()
 
     for (data_loader,dataset_dir) in data_loaders:
+        if dataset_dir == "images/trains" :
+            out_dir = output_dir + "/trains/images"
+        elif dataset_dir == "images/valids" :
+            out_dir = output_dir + "/valids/images"
+        else:
+            out_dir = output_dir
+
         for images, targets in data_loader:
             images = list(img.to(device) for img in images)
     
             if torch.cuda.is_available():
                 torch.cuda.synchronize()
             model_time = time.time()
+
     
             for (image,target) in zip(images,targets):
                 for i,j in enumerate(torch.unbind(target["boxes"])):
@@ -129,18 +137,19 @@ def inference(model,
                     outputs = model([image])
                     output = outputs[0]
                     outputfile = target["file_name"] + "_" + str(i) +".bin"
-                    filename=output_dir + "/" + dataset_dir + "/" + outputfile
+                    filename=  out_dir + "/" + outputfile
                     print("output: " + filename)
                     box_feature_map.cpu().numpy().tofile(filename)
                     
-                    # img = Image.open(dataset_name + "/" + dataset_dir + "/" + target["file_name"]).convert('RGB')
-                    # draw = ImageDraw.Draw(img)
-                    # for box, label, score in zip(output["boxes"],output["labels"],output["scores"]):
-                    #     draw.rectangle([(box[0], box[1]), (box[2], box[3])], outline="red", width=1)
-                    #     draw.text((box[0], box[1]), cats[int(label)]["name"], fill='white')
-                    # img.save(output_dir + "/" + dataset_dir + "/" + target["file_name"])
-                    with open(output_dir + "/" + dataset_dir + "/labels.csv", 'a') as f:
-                        print(outputfile+","+str(target["labels"][i]), file=f)
+                    img = Image.open(dataset_name + "/" + dataset_dir + "/" + target["file_name"]).convert('RGB')
+                    draw = ImageDraw.Draw(img)
+                    for box, label, score in zip(output["boxes"],output["labels"],output["scores"]):
+                        draw.rectangle([(box[0], box[1]), (box[2], box[3])], outline="red", width=1)
+                        draw.text((box[0], box[1]), cats[int(label)]["name"], fill='white')
+                    img.save(out_dir + "/" + target["file_name"])
+
+                    with open(out_dir + "/../labels.csv", 'a') as f:
+                        print(outputfile+","+str(int(target["labels"][i])-1), file=f)
                     
                 
 def main(args):
@@ -206,6 +215,14 @@ def main(args):
     model.rpn.register_forward_hook(hook)
     model.roi_heads.box_roi_pool.register_forward_hook(box_roi_head_hook)
 
+    weight_dir = args.output_dir + "/weights/"
+    model.roi_heads.box_head.fc6.weight.cpu().detach().numpy().tofile(weight_dir + "roi_heads:box_head:fc6:weight_in_12544_out_1024.bin")
+    model.roi_heads.box_head.fc6.bias.cpu().detach().numpy().tofile(weight_dir + "roi_heads:box_head:fc6:bias_in_12544_out_1024.bin")
+    model.roi_heads.box_head.fc7.weight.cpu().detach().numpy().tofile(weight_dir + "roi_heads:box_head:fc7:weight_in_1024_out_1024.bin")
+    model.roi_heads.box_head.fc7.bias.cpu().detach().numpy().tofile(weight_dir + "roi_heads:box_head:fc7:bias_in_1024_out_1024.bin")
+    model.roi_heads.box_predictor.cls_score.weight.cpu().detach().numpy().tofile(weight_dir + "roi_heads:box_predictor:cls_score:weight_in_1024_out_14.bin")
+    model.roi_heads.box_predictor.cls_score.bias.cpu().detach().numpy().tofile(weight_dir + "roi_heads:box_predictor:cls_score:bias_in_1024_out_14.bin")
+    
     inference(model,
               [(data_loader,"images/trains"),(data_loader_test,"images/valids")],
               device=device,
