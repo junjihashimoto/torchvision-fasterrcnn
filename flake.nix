@@ -59,6 +59,8 @@
           finetuning = args@{...}: fasterrcnn.finetuning args;
           gen-feature-map-with-partial-image = args@{...}: fasterrcnn.gen-feature-map-with-partial-image args;
           gen-feature-map = args@{...}: fasterrcnn.gen-feature-map args;
+          import-weight-files = args@{...}: fasterrcnn.import-weight-files args;
+          pretrained-model = fasterrcnn.pretrained-model;
         };
         packages = {
           dataset = bdd100k;

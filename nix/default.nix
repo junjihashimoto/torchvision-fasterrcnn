@@ -91,8 +91,9 @@ let
          , scriptArgs
          , pretrained
          , datasets
+         , checkpoint_filename ? "model.pth"
          } :
-           let pretrained_str = " --resume ${pretrained.out}/output/model.pth";
+           let pretrained_str = " --resume ${pretrained.out}/output/${checkpoint_filename}";
            in  pkgs.stdenv.mkDerivation {
     pname = pname;
     version = "1";
@@ -126,13 +127,13 @@ let
       ln -s ${datasets.out} bdd100k
       python ${script} \
         ${pretrained_str} \
-        --output-dir "${scriptArgs.output}" \
+        --output-dir "${scriptArgs.output-dir}" \
         2>&1 | tee test.log
       python log2json.py test.log
     '';
     installPhase = ''
       mkdir -p $out
-      cp -r ${scriptArgs.output} $out
+      cp -r ${scriptArgs.output-dir} $out
       cp test.log $out/
       cp map_results.json $out/
     '';
@@ -198,6 +199,60 @@ let
       mkdir -p output/weights
       cp ${datasets.out}/bdd100k.names output/
       ln -s ${datasets.out} ${dataset-dir}
+      python ${script} \
+        ${pretrained_str} \
+        ${expandStriptArgs scriptArgs}
+    '';
+    installPhase = ''
+      mkdir -p $out
+      cp -r ${scriptArgs.output-dir} $out
+    '';
+    meta = with lib; {
+      inherit description;
+      longDescription = ''
+      '';
+      homepage = "";
+      license = licenses.bsd3;
+      platforms = platforms.all;
+      maintainers = with maintainers; [ junjihashimoto ];
+    };
+  };
+  runDerivation = { pname
+         , description
+         , script
+         , scriptArgs
+         , pretrained
+         , checkpoint_filename ? "model.pth"
+         } :
+           let pretrained_str = " --resume ${pretrained.out}/output/${checkpoint_filename}";
+           in  pkgs.stdenv.mkDerivation {
+    pname = pname;
+    version = "1";
+    nativeBuildInputs = [
+      myPython
+      pkgs.curl
+      pretrained
+    ];
+    buildInputs =  [];
+    src = hasktorch-datasets-utils.excludeFiles 
+      [ "^train\.py$"
+        "^test\.py$"
+      ]
+      ../src;
+    buildPhase = ''
+      export CURL_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
+      #export REQUESTS_CA_BUNDLE=""
+      export TRANSFORMERS_CACHE=$TMPDIR
+      export XDG_CACHE_HOME=$TMPDIR
+
+      export PIP_PREFIX=$(pwd)/_build/pip_packages
+      export PYTHONPATH="$PIP_PREFIX/${myPython.sitePackages}:$PYTHONPATH"
+      export PATH="$PIP_PREFIX/bin:$PATH"
+      unset SOURCE_DATE_EPOCH
+      pwd
+      mkdir -p ../torch/hub/checkpoints
+      ln -s ${resnet50} ../torch/hub/checkpoints/resnet50-0676ba61.pth
+      ls -l ../torch/hub/checkpoints
       python ${script} \
         ${pretrained_str} \
         ${expandStriptArgs scriptArgs}
@@ -328,6 +383,7 @@ let
   };
 in
 rec {
+  pretrained-model = pretrainedModel;
   train = args@{...} : mkDerivation (rec {
     pname = "torchvision-fasterrcnn-trained";
     description = "Trained fasterrcnn";
@@ -392,7 +448,7 @@ rec {
     description = "The test of fasterrcnn";
     script = "test.py";
     scriptArgs = {
-      output = "output";
+      output-dir = "output";
     };
     pretrained = pretrainedModel;
     datasets = bdd100k;
@@ -443,6 +499,17 @@ rec {
     pretrained = pretrainedModel;
     datasets = bdd100k-mini;
     dataset-dir = "bdd100k";
+    checkpoint_filename = "best.pth";
+  } // args);
+  import-weight-files = args@{...} : runDerivation ({
+    pname = "import-weight-files-of-fasterrcnn";
+    description = "import-weight-files-of-fasterrcnn";
+    script = "import_weights.py";
+    scriptArgs = {
+      weight-dir = "";
+      output-dir = "output";
+    };
+    pretrained = pretrainedModel;
     checkpoint_filename = "best.pth";
   } // args);
   myShell = self: system: pkgs.mkShell {
